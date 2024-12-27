@@ -57,7 +57,9 @@ exchange_service = ExchangeService()
 # Get Health API
 @app.get("/", status_code=status.HTTP_200_OK, response_model=HealthResponseDto)
 async def health():
-    """서버 상태 확인
+    """
+    서버 상태 확인
+
     Args:
         None
     Returns:
@@ -79,7 +81,9 @@ async def health():
     response_model=BaseResponse[TradingSignalDto],
 )
 async def strategy(ticker: str = "KRW-BTC", strategy_type=StrategyType.PROFITABLE):
-    """시장 데이터 분석 및 매매 신호 생성
+    """
+    시장 데이터 분석 및 매매 신호 생성
+
     Args:
         ticker (str): 티커 (default: "KRW-BTC")
         strategy_type (StrategyType): 전략 타입 (default: StrategyType.PROFITABLE)
@@ -91,12 +95,8 @@ async def strategy(ticker: str = "KRW-BTC", strategy_type=StrategyType.PROFITABL
         return exchange_service.get_trading_signal(
             ticker=ticker, strategy_type=strategy_type
         )
-    except HttpJsonException as e:
-        raise e
     except Exception as e:
-        raise HttpJsonException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
-        )
+        raise e
 
 
 # Get Test API
@@ -110,12 +110,12 @@ async def test(db: Session = Depends(get_db)):
         # Upbit 거래소 인스턴스 생성 및 티커 설정
         exchange = UpbitExchange()
         exchange.ticker = "KRW-BTC"
+
         # Kestrel AI 에이전트 인스턴스 생성
         ai_agent = KestrelAiAgent()
 
         # 분석용 데이터 준비
         analysis_data = exchange.prepare_analysis_data()
-
         print("analysis_data", analysis_data)
 
         # AI 매매 결정
@@ -136,7 +136,6 @@ async def test(db: Session = Depends(get_db)):
     except HttpJsonException as e:
         raise e
     except Exception as e:
-        print("Exception occurred:", e)
         raise HttpJsonException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
         )

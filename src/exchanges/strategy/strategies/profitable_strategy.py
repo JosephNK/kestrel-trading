@@ -225,7 +225,9 @@ class ProfitableRealTimeStrategy:
         self.window_size = 50  # 분석에 사용할 데이터 윈도우 크기
 
     def analyze_market(self, current_index: int = None) -> TradingSignal:
-        """시장 데이터 분석 및 매매 신호 생성
+        """
+        시장 데이터 분석 및 매매 신호 생성
+
         Args:
             current_index: 현재 분석할 시점의 인덱스
         """
