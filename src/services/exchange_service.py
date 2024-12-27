@@ -54,7 +54,7 @@ class ExchangeService:
             raise e
         except Exception as e:
             calling_function = inspect.currentframe().f_code.co_name
-            Logging.logging_error(
+            Logging.error(
                 msg=f"Exception occurred in [{calling_function}]:",
                 error=e,
             )

@@ -35,7 +35,7 @@ app.add_middleware(
 )
 
 # LangSmith Enabled
-Logging.logging_langSmith(project_name="Kestrel")
+Logging.langSmith(project_name="Kestrel")
 
 
 # 예외 처리기 설정
