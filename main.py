@@ -14,6 +14,7 @@ from src.models.response.health_response_dto import HealthResponseDto
 from src.models.trading_dto import TradingDto
 from src.models.trading_signal_dto import TradingSignalDto
 from src.services.exchange_service import ExchangeService, StrategyType
+from src.services.trade_service import TradeService
 from src.utils.logging import Logging
 
 # 로깅 초기화
@@ -52,6 +53,7 @@ async def unicorn_exception_handler(request: Request, exc: HttpJsonException):
 
 # 서비스 인스턴스 생성
 exchange_service = ExchangeService()
+trader_service = TradeService()
 
 
 # Get Health API
@@ -82,11 +84,11 @@ async def health():
 )
 async def strategy(ticker: str = "KRW-BTC", strategy_type=StrategyType.PROFITABLE):
     """
-    시장 데이터 분석 및 매매 신호 생성
+    트레이딩 전략 사용하여 매매 신호 생성
 
     Args:
-        ticker (str): 티커 (default: "KRW-BTC")
-        strategy_type (StrategyType): 전략 타입 (default: StrategyType.PROFITABLE)
+        ticker (str): 거래할 암호화폐 티커 (default: "KRW-BTC")
+        strategy_type (StrategyType): 트레이딩 전략 유형 (default: PROFITABLE)
     Returns:
         BaseResponse[TradingSignalDto]
     """
@@ -95,8 +97,60 @@ async def strategy(ticker: str = "KRW-BTC", strategy_type=StrategyType.PROFITABL
         return exchange_service.get_trading_signal(
             ticker=ticker, strategy_type=strategy_type
         )
-    except Exception as e:
+    except HttpJsonException as e:
         raise e
+    except Exception as e:
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )
+
+
+# Get Manual Trade API
+@app.get(
+    "/v1/manual/trade",
+    status_code=status.HTTP_200_OK,
+    response_model=BaseResponse[TradingDto],
+)
+async def manual_trade(
+    ticker: str = "KRW-BTC",
+    strategy_type=StrategyType.PROFITABLE,
+    buy_percent: float = 30,
+    sell_percent: float = 50,
+):
+    """
+    수동 트레이딩을 위한 API
+
+    Args:
+       ticker (str): 거래할 암호화폐 티커 (default: "KRW-BTC")
+       strategy_type (StrategyType): 트레이딩 전략 유형 (default: PROFITABLE)
+       buy_percent (float): 매수 비율 % (default: 30%)
+       sell_percent (float): 매도 비율 % (default: 50%)
+
+    Returns:
+       BaseResponse[TradingDto]
+    """
+    try:
+        trading_signal_response = exchange_service.get_trading_signal(
+            ticker=ticker, strategy_type=strategy_type
+        )
+
+        trading_signal_dto = trading_signal_response.item
+
+        return trader_service.get_manual_trade(
+            dto=trading_signal_dto,
+            # dto=TradingSignalDto(
+            #     ticker=ticker,
+            #     signal="BUY",
+            # ),
+            buy_percent=buy_percent,
+            sell_percent=sell_percent,
+        )
+    except HttpJsonException as e:
+        raise e
+    except Exception as e:
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )
 
 
 # Get Test API
