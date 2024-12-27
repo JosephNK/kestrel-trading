@@ -1,4 +1,3 @@
-from typing import List
 from dotenv import load_dotenv
 
 from fastapi import Depends, FastAPI, status, Request
@@ -17,26 +16,29 @@ from src.models.trading_signal_dto import TradingSignalDto
 from src.services.exchange_service import ExchangeService, StrategyType
 from src.utils.logging import Logging
 
+# 로깅 초기화
+Logging.init()
+
+# .env 파일에서 환경변수 로드
 load_dotenv()
 
+# FastAPI 애플리케이션 인스턴스 생성
 app = FastAPI()
 
+# CORS 미들웨어 설정 - 크로스 오리진 리소스 공유 허용
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],  # 모든 도메인에서의 요청 허용
+    allow_credentials=True,  # 자격증명 포함 요청 허용
+    allow_methods=["*"],  # 모든 HTTP 메서드 허용
+    allow_headers=["*"],  # 모든 HTTP 헤더 허용
 )
 
 # LangSmith Enabled
 Logging.logging_langSmith(project_name="Kestrel")
 
 
-""" HttpJsonException
-"""
-
-
+# 예외 처리기 설정
 @app.exception_handler(HttpJsonException)
 async def unicorn_exception_handler(request: Request, exc: HttpJsonException):
     return JSONResponse(
@@ -48,19 +50,19 @@ async def unicorn_exception_handler(request: Request, exc: HttpJsonException):
     )
 
 
-### Health API
-### This is Health API List
+# 서비스 인스턴스 생성
+exchange_service = ExchangeService()
 
-""" [GET] /
+
+# Get Health API
+@app.get("/", status_code=status.HTTP_200_OK, response_model=HealthResponseDto)
+async def health():
+    """서버 상태 확인
     Args:
         None
     Returns:
         HealthResponseDto
-"""
-
-
-@app.get("/", status_code=status.HTTP_200_OK, response_model=HealthResponseDto)
-async def health():
+    """
     try:
         return HealthResponseDto(status="OK")
     except Exception as e:
@@ -70,50 +72,34 @@ async def health():
         )
 
 
+# Get Strategy API
 @app.get(
     "/v1/strategy",
     status_code=status.HTTP_200_OK,
     response_model=BaseResponse[TradingSignalDto],
 )
-async def strategy(ticker: str = "KRW-BTC"):
+async def strategy(ticker: str = "KRW-BTC", strategy_type=StrategyType.PROFITABLE):
     """시장 데이터 분석 및 매매 신호 생성
-    Response:
-        {
-            ...
-            "item": {
-                ...
-                "ticker": "KRW-BTC",
-                "signal": "HOLD",
-                ...
-            }
-            ...
-        }
+    Args:
+        ticker (str): 티커 (default: "KRW-BTC")
+        strategy_type (StrategyType): 전략 타입 (default: StrategyType.PROFITABLE)
+    Returns:
+        BaseResponse[TradingSignalDto]
     """
 
     try:
-        service = ExchangeService()
-
-        trading_signal = service.get_trading_signal(
-            ticker=ticker, strategy_type=StrategyType.PROFITABLE
+        return exchange_service.get_trading_signal(
+            ticker=ticker, strategy_type=strategy_type
         )
-
-        if trading_signal is None:
-            raise HttpJsonException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                error_message=str("Trading Signal Not Found"),
-            )
-
-        return BaseResponse[TradingSignalDto](
-            status_code=status.HTTP_200_OK,
-            item=TradingSignalDto(ticker=ticker, signal=trading_signal.value),
-        )
+    except HttpJsonException as e:
+        raise e
     except Exception as e:
-        print("Exception occurred:", e)
         raise HttpJsonException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
         )
 
 
+# Get Test API
 @app.get(
     "/v1/test",
     status_code=status.HTTP_200_OK,
@@ -121,8 +107,10 @@ async def strategy(ticker: str = "KRW-BTC"):
 )
 async def test(db: Session = Depends(get_db)):
     try:
+        # Upbit 거래소 인스턴스 생성 및 티커 설정
         exchange = UpbitExchange()
         exchange.ticker = "KRW-BTC"
+        # Kestrel AI 에이전트 인스턴스 생성
         ai_agent = KestrelAiAgent()
 
         # 분석용 데이터 준비
@@ -145,6 +133,8 @@ async def test(db: Session = Depends(get_db)):
                 reason=answer["reason"],
             ),
         )
+    except HttpJsonException as e:
+        raise e
     except Exception as e:
         print("Exception occurred:", e)
         raise HttpJsonException(

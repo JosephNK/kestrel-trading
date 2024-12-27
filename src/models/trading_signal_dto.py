@@ -5,8 +5,8 @@ from datetime import date, datetime, timedelta, timezone
 
 class TradingSignalDto(BaseModel):
     id: int = 0
-    ticker: str | None = None
-    signal: str | None = None
+    ticker: str | None = None  # "KRW-BTC"
+    signal: str | None = None  # "BUY" | "SELL" | "HOLD"
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

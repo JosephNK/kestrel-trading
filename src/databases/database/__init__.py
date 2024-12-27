@@ -4,9 +4,6 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from config import DATABASE_URI
 
-# Create database engine
-print("DATABASE_URI", DATABASE_URI)
-
 engine = create_engine(DATABASE_URI, echo=False)
 
 # Create database session

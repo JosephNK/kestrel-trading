@@ -1,3 +1,5 @@
+from enum import Enum
+
 from dataclasses import dataclass
 from typing import List, Tuple, Protocol
 import backtrader as bt
@@ -6,18 +8,29 @@ import numpy as np
 import talib
 
 
+class TradingSignal(str, Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+    HOLD = "HOLD"
+
+
 @dataclass
 class TradingParameters:
-    rsi_period: int = 14
-    rsi_threshold: int = 50
-    macd_fastperiod: int = 12
-    macd_slowperiod: int = 26
-    macd_signalperiod: int = 9
-    stoch_fastk: int = 12
-    stoch_slowk: int = 3
-    stoch_slowd: int = 3
-    stoch_oversold: int = 20
-    stoch_overbought: int = 80
+    # RSI 설정
+    rsi_period: int = 14  # RSI 계산 기간 (일반적으로 14일 사용)
+    rsi_threshold: int = 50  # RSI 매매 신호 기준값
+
+    # MACD 설정
+    macd_fastperiod: int = 12  # 단기 이동평균 기간 (기본값 12)
+    macd_slowperiod: int = 26  # 장기 이동평균 기간 (기본값 26)
+    macd_signalperiod: int = 9  # MACD 시그널 라인 기간 (기본값 9)
+
+    # 스토캐스틱 설정
+    stoch_fastk: int = 12  # Fast %K 기간
+    stoch_slowk: int = 3  # Slow %K 기간
+    stoch_slowd: int = 3  # Slow %D 기간
+    stoch_oversold: int = 20  # 과매도 기준값
+    stoch_overbought: int = 80  # 과매수 기준값
 
 
 @dataclass
@@ -27,6 +40,7 @@ class MarketData:
     low: np.ndarray
 
 
+# 기술적 지표 계산을 위한 프로토콜
 class TechnicalIndicator(Protocol):
     def calculate_rsi(self, close: np.ndarray, period: int) -> np.ndarray: ...
     def calculate_macd(
@@ -43,7 +57,8 @@ class TechnicalIndicator(Protocol):
     ) -> Tuple[np.ndarray, np.ndarray]: ...
 
 
-class TALibIndicator:
+# TA-Lib 라이브러리를 사용한 기술적 지표 계산
+class TALibIndicator(TechnicalIndicator):
     def calculate_rsi(self, close: np.ndarray, period: int) -> np.ndarray:
         return talib.RSI(close, timeperiod=period)
 
@@ -159,7 +174,7 @@ class TradingStrategy:
         return satisfied_buy_conditions, satisfied_sell_conditions
 
 
-# Backtrader에서 사용하는 구현
+# Backtrader에서 사용하는 전략 클래스
 class ProfitableStrategy(bt.Strategy):
     def __init__(self):
         self.trading_strategy = TradingStrategy(TradingParameters(), TALibIndicator())
@@ -197,8 +212,8 @@ class ProfitableStrategy(bt.Strategy):
         print(f"[{dt.isoformat()}] {txt}")
 
 
-# 다른 트레이딩 플랫폼용 어댑터 예시
-class ProfitableFixedStrategy:
+# 실시간 전략 클래스
+class ProfitableRealTimeStrategy:
     def __init__(self, df: pd.DataFrame):
         if not all(col in df.columns for col in ["close", "high", "low"]):
             raise ValueError(
@@ -209,7 +224,7 @@ class ProfitableFixedStrategy:
         self.trading_strategy = TradingStrategy(TradingParameters(), TALibIndicator())
         self.window_size = 50  # 분석에 사용할 데이터 윈도우 크기
 
-    def analyze_market(self, current_index: int = None):
+    def analyze_market(self, current_index: int = None) -> TradingSignal:
         """시장 데이터 분석 및 매매 신호 생성
         Args:
             current_index: 현재 분석할 시점의 인덱스
@@ -234,12 +249,12 @@ class ProfitableFixedStrategy:
                 f"매수 신호 발생 (조건 {len(buy_signals)}개 충족): "
                 + ", ".join(buy_signals)
             )
-            return "BUY"
+            return TradingSignal.BUY
         elif len(sell_signals) >= 3:
             print(
                 f"매도 신호 발생 (조건 {len(sell_signals)}개 충족): "
                 + ", ".join(sell_signals)
             )
-            return "SELL"
+            return TradingSignal.SELL
 
-        return "HOLD"
+        return TradingSignal.HOLD
