@@ -82,7 +82,10 @@ async def health():
     status_code=status.HTTP_200_OK,
     response_model=BaseResponse[TradingSignalDto],
 )
-async def strategy(ticker: str = "KRW-BTC", strategy_type=StrategyType.PROFITABLE):
+async def strategy(
+    ticker: str = "KRW-BTC",
+    strategy_type: StrategyType = StrategyType.PROFITABLE,
+):
     """
     트레이딩 전략 사용하여 매매 신호 생성
 
@@ -113,7 +116,7 @@ async def strategy(ticker: str = "KRW-BTC", strategy_type=StrategyType.PROFITABL
 )
 async def manual_trade(
     ticker: str = "KRW-BTC",
-    strategy_type=StrategyType.PROFITABLE,
+    strategy_type: StrategyType = StrategyType.PROFITABLE,
     buy_percent: float = 30,
     sell_percent: float = 50,
 ):
@@ -129,6 +132,7 @@ async def manual_trade(
     Returns:
        BaseResponse[TradingDto]
     """
+
     try:
         trading_signal_response = exchange_service.get_trading_signal(
             ticker=ticker, strategy_type=strategy_type
