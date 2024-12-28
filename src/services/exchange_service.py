@@ -21,7 +21,7 @@ class StrategyType(str, Enum):
 
 class ExchangeService:
 
-    def get_trading_signal(
+    def get_trading_signal_with_strategy(
         self,
         ticker: str = "KRW-BTC",
         strategy_type: StrategyType = StrategyType.PROFITABLE,
@@ -35,6 +35,7 @@ class ExchangeService:
 
             trading_signal = None
 
+            # Profitable 전략
             if strategy_type == StrategyType.PROFITABLE:
                 strategy = ProfitableRealTimeStrategy(df=day_candle_df)
                 latest_signal = strategy.analyze_market()

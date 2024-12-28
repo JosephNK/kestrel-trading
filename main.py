@@ -97,7 +97,7 @@ async def strategy(
     """
 
     try:
-        return exchange_service.get_trading_signal(
+        return exchange_service.get_trading_signal_with_strategy(
             ticker=ticker, strategy_type=strategy_type
         )
     except HttpJsonException as e:
@@ -108,20 +108,20 @@ async def strategy(
         )
 
 
-# Get Manual Trade API
+# Get Strategy Trade API
 @app.get(
-    "/v1/manual/trade",
+    "/v1/trade/strategy",
     status_code=status.HTTP_200_OK,
     response_model=BaseResponse[TradingDto],
 )
-async def manual_trade(
+async def trade_strategy(
     ticker: str = "KRW-BTC",
     strategy_type: StrategyType = StrategyType.PROFITABLE,
     buy_percent: float = 30,
     sell_percent: float = 50,
 ):
     """
-    수동 트레이딩을 위한 API
+    트레이딩 전략 사용하여 매매 실행
 
     Args:
        ticker (str): 거래할 암호화폐 티커 (default: "KRW-BTC")
@@ -134,13 +134,13 @@ async def manual_trade(
     """
 
     try:
-        trading_signal_response = exchange_service.get_trading_signal(
+        trading_signal_response = exchange_service.get_trading_signal_with_strategy(
             ticker=ticker, strategy_type=strategy_type
         )
 
         trading_signal_dto = trading_signal_response.item
 
-        return trader_service.get_manual_trade(
+        return trader_service.run_trade(
             dto=trading_signal_dto,
             # dto=TradingSignalDto(
             #     ticker=ticker,

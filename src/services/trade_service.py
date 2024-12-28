@@ -14,7 +14,7 @@ from src.utils.logging import Logging
 
 class TradeService:
 
-    def get_manual_trade(
+    def run_trade(
         self,
         dto: TradingSignalDto,
         buy_percent: float = 30,
