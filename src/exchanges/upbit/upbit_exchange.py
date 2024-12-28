@@ -4,13 +4,12 @@ import pyupbit
 
 import pandas as pd
 
-from src.exchanges.strategy.strategies.datas.custom_pandas_data import (
-    CustomPandasData,
-)
-from src.exchanges.strategy.strategies.ma_cross_strategy import MACrossStrategy
+from datetime import datetime
+
 from src.models.trading_dto import TradingDto
 from src.utils.fng import Fng
 from src.utils.indicator import Indicator
+from src.utils.logging import Logging
 from src.utils.news import News
 
 
@@ -213,7 +212,7 @@ class UpbitExchange:
             # 각종 데이터 수집
             investment_status = self.get_current_investment_status()
             day_candle_data = self.get_candle(count=30, interval="day").to_json()
-            hour_candle_data = self.get_candle(count=24, interval="minute60").to_json()
+            hour_candle_data = self.get_candle(count=24, interval="hour").to_json()
             orderbook_status = self.get_orderbook_status()
             # fear_greed_index = Fng.get_fear_and_greed_index()
             # news_headlines = News.get_google_news(query=ticker_currency)
@@ -262,28 +261,31 @@ class UpbitExchange:
 
             if decision == "BUY":
                 # Buy
-                print("Buy Reason: ", reason)
+                Logging.info(f"Buy Reason: {reason}")
                 result = self.buy_market(buy_percent=buy_percent)
                 if result:
                     return TradingDto(
                         decision=decision,
                         reason=reason,
+                        created_at=datetime.now(),
                     )
             elif decision == "SELL":
                 # Sell
-                print("Sell Reason: ", reason)
+                Logging.info(f"Sell Reason: {reason}")
                 result = self.sell_market(sell_percent=sell_percent)
                 if result:
                     return TradingDto(
                         decision=decision,
                         reason=reason,
+                        created_at=datetime.now(),
                     )
             elif decision == "HOLD":
                 # Hold
-                print("Hold Reason: ", reason)
+                Logging.info(f"Hold Reason: {reason}")
                 return TradingDto(
                     decision=decision,
                     reason=reason,
+                    created_at=datetime.now(),
                 )
 
             raise ValueError(f"거래 결과가 없거나 잘못 되었습니다.")
@@ -296,7 +298,7 @@ class UpbitExchange:
             balance * self.fee
         )  # 수수료 제외 실제 매수 가능 금액
         buy_amount = available_buy_amount * (buy_percent / 100)  # 매수 금액
-        print(
+        Logging.info(
             f"[BUY] "
             f"보유 원화: {balance:,.0f}원, "
             f"수수료 제외 실제 매수 가능 금액: {available_buy_amount:,.0f}원, "
@@ -333,7 +335,7 @@ class UpbitExchange:
         asset_value = balance * market_price  # 평가 금액
         sell_amount = balance * (sell_percent / 100)  # 매도 수량
         ask_price = market_price * sell_amount  # 매도 금액
-        print(
+        Logging.info(
             f"[SELL] "
             f"보유수량: {balance:.8f}개, "
             f"현재가: {market_price:,.0f}원, "

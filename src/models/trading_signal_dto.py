@@ -8,6 +8,7 @@ class TradingSignalDto(BaseModel):
     id: int = 0  # 신호 ID
     ticker: str | None = None  # 거래 대상 티커 (예: "KRW-BTC")
     signal: str | None = None  # 거래 신호 (BUY/SELL/HOLD)
+    reason: str | None = None  # 거래 신호 이유
     created_at: datetime | None = None  # 생성 시간
     updated_at: datetime | None = None  # 수정 시간
 

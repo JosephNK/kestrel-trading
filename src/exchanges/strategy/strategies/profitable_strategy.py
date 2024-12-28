@@ -7,11 +7,7 @@ import pandas as pd
 import numpy as np
 import talib
 
-
-class TradingSignal(str, Enum):
-    BUY = "BUY"
-    SELL = "SELL"
-    HOLD = "HOLD"
+from src.exchanges.strategy.strategies.datas.types import TradingSignal
 
 
 @dataclass

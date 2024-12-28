@@ -13,6 +13,11 @@ from src.utils.logging import Logging
 
 
 class TradeService:
+    exchange: UpbitExchange
+
+    def __init__(self):
+        # Upbit 거래소 인스턴스 생성
+        self.exchange = UpbitExchange()
 
     def run_trade(
         self,
@@ -21,16 +26,14 @@ class TradeService:
         sell_percent: float = 50,
     ) -> BaseResponse[TradingDto]:
         try:
-            # Upbit 거래소 인스턴스 생성
-            exchange = UpbitExchange()
-            exchange.ticker = dto.ticker
-
-            # 매매 신호 생성
-            trading_signal = TradingSignal(dto.signal)
+            self.exchange.ticker = dto.ticker
 
             # 매매 실행
-            trading_dto = exchange.trading(
-                answer={"decision": trading_signal.value, "reason": ""},
+            trading_dto = self.exchange.trading(
+                answer={
+                    "decision": TradingSignal(dto.signal.upper()).value,
+                    "reason": dto.reason,
+                },
                 buy_percent=buy_percent,
                 sell_percent=sell_percent,
             )

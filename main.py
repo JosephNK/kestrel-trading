@@ -7,13 +7,14 @@ from requests import Session
 
 from src.agents.kestrel_agent import KestrelAiAgent
 from src.databases.database import get_db
+from src.exchanges.strategy.strategies.datas.types import StrategyType
 from src.exchanges.upbit.upbit_exchange import UpbitExchange
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
 from src.models.response.health_response_dto import HealthResponseDto
 from src.models.trading_dto import TradingDto
 from src.models.trading_signal_dto import TradingSignalDto
-from src.services.exchange_service import ExchangeService, StrategyType
+from src.services.exchange_service import ExchangeService
 from src.services.trade_service import TradeService
 from src.utils.logging import Logging
 
@@ -135,12 +136,14 @@ async def trade_strategy(
 
     try:
         trading_signal_response = exchange_service.get_trading_signal_with_strategy(
-            ticker=ticker, strategy_type=strategy_type
+            ticker=ticker,
+            strategy_type=strategy_type,
+            interval="day",
         )
 
         trading_signal_dto = trading_signal_response.item
 
-        return trader_service.run_trade(
+        trading_response = trader_service.run_trade(
             dto=trading_signal_dto,
             # dto=TradingSignalDto(
             #     ticker=ticker,
@@ -149,6 +152,8 @@ async def trade_strategy(
             buy_percent=buy_percent,
             sell_percent=sell_percent,
         )
+
+        return trading_response
     except HttpJsonException as e:
         raise e
     except Exception as e:
@@ -157,40 +162,48 @@ async def trade_strategy(
         )
 
 
-# Get Test API
+# Get Trade Agent API
 @app.get(
-    "/v1/test",
+    "/v1/trade/agent",
     status_code=status.HTTP_200_OK,
     response_model=BaseResponse[TradingDto],
 )
-async def test(db: Session = Depends(get_db)):
+async def trade_agent(
+    db: Session = Depends(get_db),
+    ticker: str = "KRW-BTC",
+    strategy_type: StrategyType = StrategyType.PROFITABLE,
+    buy_percent: float = 30,
+    sell_percent: float = 50,
+):
     try:
-        # Upbit 거래소 인스턴스 생성 및 티커 설정
-        exchange = UpbitExchange()
-        exchange.ticker = "KRW-BTC"
-
-        # Kestrel AI 에이전트 인스턴스 생성
-        ai_agent = KestrelAiAgent()
-
-        # 분석용 데이터 준비
-        analysis_data = exchange.prepare_analysis_data()
-        print("analysis_data", analysis_data)
-
-        # AI 매매 결정
-        answer = ai_agent.invoke(source_data=analysis_data, is_pass=True)
-
-        # 매매 실행
-        exchange.trading(answer=answer)
-
-        return BaseResponse[TradingDto](
-            status_code=status.HTTP_200_OK,
-            item=TradingDto(
-                decision=answer["decision"],
-                # confidence=answer["confidence"],
-                # ratio=answer["ratio"],
-                reason=answer["reason"],
-            ),
+        trading_signal_response, answer = (
+            exchange_service.get_trading_signal_with_agent(
+                ticker=ticker,
+                strategy_type=strategy_type,
+                interval="day",
+                candle_count=30,
+            )
         )
+
+        trading_signal_dto = trading_signal_response.item
+
+        total_tokens = answer["total_tokens"]
+        prompt_tokens = answer["prompt_tokens"]
+        completion_tokens = answer["completion_tokens"]
+        total_cost = answer["total_cost"]
+
+        trading_response = trader_service.run_trade(
+            dto=trading_signal_dto,
+            buy_percent=buy_percent,
+            sell_percent=sell_percent,
+        )
+
+        trading_response.item.total_tokens = total_tokens
+        trading_response.item.prompt_tokens = prompt_tokens
+        trading_response.item.completion_tokens = completion_tokens
+        trading_response.item.total_cost = total_cost
+
+        return trading_response
     except HttpJsonException as e:
         raise e
     except Exception as e:
