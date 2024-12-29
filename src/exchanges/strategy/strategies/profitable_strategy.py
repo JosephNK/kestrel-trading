@@ -154,15 +154,15 @@ class TradingStrategy(StrategyAnalyze):
         self.macd_prev = macd[check_index]
         self.macdsignal_prev = macdsignal[check_index]
 
-        print(
-            f"[Strategy Analyze Values]\n"
-            f"* 과매도 기준값: {self.params.stoch_oversold}\n"
-            f"* 과매수 기준값: {self.params.stoch_overbought}\n"
-            f"* RSI 기준값: {self.params.rsi_threshold}\n"
-            f"- Stoch K: {slowk[check_index]:.2f}\n"
-            f"- Stoch D: {slowd[check_index]:.2f}\n"
-            f"- RSI: {rsi[check_index]:.2f}"
-        )
+        # print(
+        #     f"[Strategy Analyze Values]\n"
+        #     f"* 과매도 기준값: {self.params.stoch_oversold}\n"
+        #     f"* 과매수 기준값: {self.params.stoch_overbought}\n"
+        #     f"* RSI 기준값: {self.params.rsi_threshold}\n"
+        #     f"- Stoch K: {slowk[check_index]:.2f}\n"
+        #     f"- Stoch D: {slowd[check_index]:.2f}\n"
+        #     f"- RSI: {rsi[check_index]:.2f}"
+        # )
 
         # 매수/매도 조건 검사
         buy_conditions = [
@@ -214,6 +214,7 @@ class BackTestingProfitableStrategy(bt.Strategy):
         self.data_close = self.data.close
         self.data_high = self.data.high
         self.data_low = self.data.low
+        self.order = None  # order 상태 추적을 위해 추가
 
     def next(self):
         if len(self.data) < 50:
@@ -228,17 +229,50 @@ class BackTestingProfitableStrategy(bt.Strategy):
         buy_signals, sell_signals = self.trading_strategy.analyze(market_data)
 
         if not self.position and len(buy_signals) >= 3:
-            self.buy()
+            self.order = self.buy()
             self.log(
                 f"매수 신호 발생 (조건 {len(buy_signals)}개 충족): "
                 + ", ".join(buy_signals)
             )
         elif self.position and len(sell_signals) >= 3:
-            self.sell()
+            self.order = self.sell()
             self.log(
                 f"매도 신호 발생 (조건 {len(sell_signals)}개 충족): "
                 + ", ".join(sell_signals)
             )
+
+    def notify_order(self, order):
+        if order.status in [order.Submitted, order.Accepted]:
+            return  # 아직 처리 중인 주문
+
+        if order.status in [order.Completed]:
+            if order.isbuy():
+                self.log(
+                    f"매수 체결: 가격: {order.executed.price}, 수량: {order.executed.size}"
+                )
+            else:
+                self.log(
+                    f"매도 체결: 가격: {order.executed.price}, 수량: {order.executed.size}"
+                )
+
+        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+            self.log("주문 실패")
+
+        self.order = None  # 주문 상태 초기화
+
+    def notify_trade(self, trade):
+        print(
+            f"Strategy Trade Status: isopen={trade.isopen}, isclosed={trade.isclosed}"
+        )
+        if trade.isclosed:
+            print(
+                "---------------------------- TRADE ---------------------------------"
+            )
+            print(f"Date: {self.data.datetime.date(0)}")
+            print(f"Type: {'sell' if trade.long else 'buy'}")
+            print(f"Price: {trade.price}")
+            print(f"Size: {trade.size}")
+            print(f"PnL: {trade.pnl}")
 
     def log(self, txt, dt=None):
         dt = dt or self.datas[0].datetime.date(0)

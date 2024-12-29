@@ -4,7 +4,11 @@ from src.exchanges.strategy.strategies.datas.types import StrategyType
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_signal_dto import TradingSignalDto
-from src.routes.dependencies.services import get_exchange_service
+from src.routes.dependencies.services import (
+    get_backtesting_service,
+    get_exchange_service,
+)
+from src.services.backtesting_service import BacktestingService
 from src.services.exchange_service import ExchangeService
 from src.utils.logging import Logging
 
@@ -37,6 +41,32 @@ async def strategy(
         return exchange_service.get_trading_signal_with_strategy(
             ticker=ticker,
             strategy_type=strategy_type,
+        )
+    except HttpJsonException as e:
+        raise e
+    except Exception as e:
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )
+
+
+# Get Backtesting Strategy API (/api/v1/strategy/backtesting)
+@router.get(
+    "/strategy/backtesting",
+    status_code=status.HTTP_200_OK,
+    response_model=BaseResponse[TradingSignalDto],
+)
+async def strategy_backtesting(
+    backtesting_service: BacktestingService = Depends(get_backtesting_service),
+    ticker: str = "KRW-BTC",
+    strategy_type: StrategyType = StrategyType.PROFITABLE,
+):
+    try:
+        return backtesting_service.run_testing(
+            ticker=ticker,
+            strategy_type=strategy_type,
+            candle_count=200,
+            candle_interval="day",
         )
     except HttpJsonException as e:
         raise e

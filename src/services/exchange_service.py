@@ -155,3 +155,15 @@ class ExchangeService:
             raise HttpJsonException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
             )
+
+    def get_candle_df(
+        self,
+        ticker: str = "KRW-BTC",
+        candle_count: int = 200,
+        candle_interval: str = "day",
+    ) -> pd.DataFrame:
+        self.exchange.ticker = ticker
+        candle_df = self.exchange.get_candle(
+            count=candle_count, interval=candle_interval
+        )
+        return candle_df

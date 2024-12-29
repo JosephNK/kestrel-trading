@@ -10,7 +10,11 @@ from src.routes.v1 import (
     trade as trade_v1,
 )
 from src.models.exception.http_json_exception import HttpJsonException
-from src.routes.dependencies.services import get_exchange_service, get_trade_service
+from src.routes.dependencies.services import (
+    get_backtesting_service,
+    get_exchange_service,
+    get_trade_service,
+)
 from src.utils.logging import Logging
 
 project_name = "Kestrel"
@@ -55,7 +59,10 @@ app.include_router(
     strategy_v1.router,
     prefix="/api/v1",
     tags=["strategy_v1"],
-    dependencies=[Depends(get_exchange_service)],
+    dependencies=[
+        Depends(get_exchange_service),
+        Depends(get_backtesting_service),
+    ],
 )
 app.include_router(
     trade_v1.router,

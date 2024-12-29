@@ -3,7 +3,7 @@ from src.agents.kestrel_agent import KestrelAiAgent
 from src.exchanges.strategy.strategies.profitable_strategy import (
     ProfitableRealTimeStrategy,
 )
-from src.exchanges.strategy.strategy import BacktestingStrategy
+from src.exchanges.strategy.backtesting import Backtesting
 from src.exchanges.upbit.upbit_exchange import UpbitExchange
 from src.utils.whale_etherscan import EtherscanWhaleTransaction
 
@@ -15,7 +15,7 @@ def main1():
         exchange = UpbitExchange()
         exchange.ticker = "KRW-BORA"
         day_candle_df = exchange.get_candle(count=200, interval="day")
-        BacktestingStrategy.run(day_candle_df)
+        Backtesting().run_profitable_strategy(day_candle_df)
     except Exception as e:
         print(e)
 
