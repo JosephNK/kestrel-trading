@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Tuple
 import pyupbit
 
 import pandas as pd
@@ -40,6 +41,9 @@ class UpbitExchange:
         self.access_key = os.environ.get("UPBIT_ACCESS_KEY")
         self.secret_key = os.environ.get("UPBIT_SECRET_KEY")
         self.upbit = pyupbit.Upbit(self.access_key, self.secret_key)
+
+    def get_provider(self):
+        return "Upbit"
 
     # Get Current Investment Status
     def get_current_investment_status(self):
@@ -262,37 +266,37 @@ class UpbitExchange:
             if decision == "BUY":
                 # Buy
                 Logging.info(f"Buy Reason: {reason}")
-                result = self.buy_market(buy_percent=buy_percent)
-                if result:
-                    return TradingDto(
-                        decision=decision,
-                        reason=reason,
-                        created_at=datetime.now(),
-                    )
+                return self.buy_market(
+                    buy_percent=buy_percent,
+                    decision=decision,
+                    reason=reason,
+                )
             elif decision == "SELL":
                 # Sell
                 Logging.info(f"Sell Reason: {reason}")
-                result = self.sell_market(sell_percent=sell_percent)
-                if result:
-                    return TradingDto(
-                        decision=decision,
-                        reason=reason,
-                        created_at=datetime.now(),
-                    )
+                return self.sell_market(
+                    sell_percent=sell_percent,
+                    decision=decision,
+                    reason=reason,
+                )
             elif decision == "HOLD":
                 # Hold
                 Logging.info(f"Hold Reason: {reason}")
-                return TradingDto(
+                return self.hold_market(
                     decision=decision,
                     reason=reason,
-                    created_at=datetime.now(),
                 )
 
             raise ValueError(f"거래 결과가 없거나 잘못 되었습니다.")
         except Exception as e:
             raise e
 
-    def buy_market(self, buy_percent: float = 100) -> bool:
+    def buy_market(
+        self,
+        decision: str,
+        reason: str,
+        buy_percent: float = 100,
+    ) -> TradingDto:
         balance = self.upbit.get_balance("KRW")  # 보유 원화
         available_buy_amount = balance - (
             balance * self.fee
@@ -321,13 +325,25 @@ class UpbitExchange:
             if "uuid" not in buy_result:
                 raise ValueError(f"매수 주문 ID를 찾을 수 없습니다.")
 
-            return True
+            return TradingDto(
+                ticker=self.ticker,
+                decision=decision,
+                reason=reason,
+                trading_value=buy_amount,
+                exchange_provider=self.get_provider(),
+                created_at=datetime.now(),
+            )
         else:
             raise ValueError(
                 f"매수 금액이 {self.min_trade_amount}보다 적어서 매수 주문이 실패했습니다."
             )
 
-    def sell_market(self, sell_percent: float = 100) -> bool:
+    def sell_market(
+        self,
+        decision: str,
+        reason: str,
+        sell_percent: float = 100,
+    ) -> TradingDto:
         balance = self.upbit.get_balance(self.ticker)  # 보유수량
         market_price = pyupbit.get_orderbook(ticker=self.ticker)["orderbook_units"][0][
             "ask_price"
@@ -360,8 +376,28 @@ class UpbitExchange:
             if "uuid" not in sell_result:
                 raise ValueError(f"매도 주문 ID를 찾을 수 없습니다.")
 
-            return True
+            return TradingDto(
+                ticker=self.ticker,
+                decision=decision,
+                reason=reason,
+                trading_value=ask_price,
+                exchange_provider=self.get_provider(),
+                created_at=datetime.now(),
+            )
         else:
             raise ValueError(
                 f"매도 금액이 {self.min_trade_amount}보다 적어서 매도 주문이 실패했습니다."
             )
+
+    def hold_market(
+        self,
+        decision: str,
+        reason: str,
+    ) -> TradingDto:
+        return TradingDto(
+            ticker=self.ticker,
+            decision=decision,
+            reason=reason,
+            exchange_provider=self.get_provider(),
+            created_at=datetime.now(),
+        )

@@ -8,7 +8,6 @@ from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_dto import TradingDto
 from src.models.trading_signal_dto import TradingSignalDto
-from src.services.exchange_service import StrategyType
 from src.utils.logging import Logging
 
 
@@ -16,7 +15,7 @@ class TradeService:
     exchange: UpbitExchange
 
     def __init__(self):
-        # Upbit 거래소 인스턴스 생성
+        Logging.info("Creating an instance of TradeService!")
         self.exchange = UpbitExchange()
 
     def run_trade(
@@ -28,10 +27,10 @@ class TradeService:
         try:
             self.exchange.ticker = dto.ticker
 
-            # 매매 실행
+            # 거래소 매매 실행
             trading_dto = self.exchange.trading(
                 answer={
-                    "decision": TradingSignal(dto.signal.upper()).value,
+                    "decision": TradingSignal(dto.decision.upper()).value,
                     "reason": dto.reason,
                 },
                 buy_percent=buy_percent,

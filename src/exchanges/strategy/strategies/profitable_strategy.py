@@ -220,7 +220,7 @@ class ProfitableRealTimeStrategy:
         self.trading_strategy = TradingStrategy(TradingParameters(), TALibIndicator())
         self.window_size = 50  # 분석에 사용할 데이터 윈도우 크기
 
-    def analyze_market(self, current_index: int = None) -> TradingSignal:
+    def analyze_market(self, current_index: int = None) -> Tuple[TradingSignal, str]:
         """
         시장 데이터 분석 및 매매 신호 생성
 
@@ -243,16 +243,16 @@ class ProfitableRealTimeStrategy:
         buy_signals, sell_signals = self.trading_strategy.analyze(market_data)
 
         if len(buy_signals) >= 3:
-            print(
+            signal_condition = (
                 f"매수 신호 발생 (조건 {len(buy_signals)}개 충족): "
                 + ", ".join(buy_signals)
             )
-            return TradingSignal.BUY
+            return (TradingSignal.BUY, signal_condition)
         elif len(sell_signals) >= 3:
-            print(
+            signal_condition = (
                 f"매도 신호 발생 (조건 {len(sell_signals)}개 충족): "
                 + ", ".join(sell_signals)
             )
-            return TradingSignal.SELL
+            return (TradingSignal.SELL, signal_condition)
 
-        return TradingSignal.HOLD
+        return (TradingSignal.HOLD, None)

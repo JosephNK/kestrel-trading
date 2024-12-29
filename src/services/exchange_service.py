@@ -1,6 +1,7 @@
 import inspect
 import pandas as pd
 
+from datetime import datetime
 from fastapi import status
 from typing import Tuple
 
@@ -21,34 +22,39 @@ class ExchangeService:
     exchange: UpbitExchange
 
     def __init__(self):
-        # Upbit 거래소 인스턴스 생성
+        Logging.info("Creating an instance of ExchangeService!")
         self.exchange = UpbitExchange()
 
     # Profitable 전략에 따른 Trading Signal 생성
-    def get_profitable_strategy_trading_signal(self, df: pd.DataFrame) -> TradingSignal:
+    def get_profitable_strategy_trading_signal(
+        self, df: pd.DataFrame
+    ) -> Tuple[TradingSignal, str]:
         strategy = ProfitableRealTimeStrategy(df=df)
-        latest_signal = strategy.analyze_market()
-        return TradingSignal(latest_signal)
+        return strategy.analyze_market()
 
     # 전략에 따른 Trading Signal 생성
     def get_trading_signal_with_strategy(
         self,
         ticker: str = "KRW-BTC",
         strategy_type: StrategyType = StrategyType.PROFITABLE,
-        interval: str = "day",
+        candle_count: int = 200,
+        candle_interval: str = "day",
     ) -> BaseResponse[TradingSignalDto]:
         try:
             self.exchange.ticker = ticker
 
-            # 캔들 데이터 조회
-            candle_df = self.exchange.get_candle(count=200, interval=interval)
+            # 데이터 조회
+            candle_df = self.exchange.get_candle(
+                count=candle_count, interval=candle_interval
+            )
 
             trading_signal: TradingSignal | None = None
+            signal_condition: str | None = None
 
             if strategy_type == StrategyType.PROFITABLE:
                 # Profitable 전략
-                trading_signal = self.get_profitable_strategy_trading_signal(
-                    df=candle_df
+                trading_signal, signal_condition = (
+                    self.get_profitable_strategy_trading_signal(df=candle_df)
                 )
 
             if trading_signal is None:
@@ -59,7 +65,13 @@ class ExchangeService:
 
             return BaseResponse[TradingSignalDto](
                 status_code=status.HTTP_200_OK,
-                item=TradingSignalDto(ticker=ticker, signal=trading_signal.value),
+                item=TradingSignalDto(
+                    ticker=ticker,
+                    decision=trading_signal.value,
+                    reason=signal_condition,
+                    exchange_provider=self.exchange.get_provider(),
+                    created_at=datetime.now(),
+                ),
             )
         except HttpJsonException as e:
             raise e
@@ -79,20 +91,23 @@ class ExchangeService:
         ticker: str = "KRW-BTC",
         strategy_type: StrategyType = StrategyType.PROFITABLE,
         candle_count: int = 200,
-        interval: str = "day",
+        candle_interval: str = "day",
     ) -> Tuple[BaseResponse[TradingSignalDto], dict]:
         try:
             self.exchange.ticker = ticker
 
+            # 데이터 조회
+            candle_df = self.exchange.get_candle(
+                count=candle_count, interval=candle_interval
+            )
             investment_status = self.exchange.get_current_investment_status()
-            candle_df = self.exchange.get_candle(count=candle_count, interval=interval)
             orderbook_status = self.exchange.get_orderbook_status()
 
             trading_signal: TradingSignal | None = None
 
             if strategy_type == StrategyType.PROFITABLE:
                 # Profitable 전략
-                trading_signal = self.get_profitable_strategy_trading_signal(
+                trading_signal, _ = self.get_profitable_strategy_trading_signal(
                     df=candle_df
                 )
 
@@ -122,8 +137,9 @@ class ExchangeService:
                     status_code=status.HTTP_200_OK,
                     item=TradingSignalDto(
                         ticker=ticker,
-                        signal=answer["decision"],
+                        decision=answer["decision"],
                         reason=answer["reason"],
+                        created_at=datetime.now(),
                     ),
                 ),
                 answer,

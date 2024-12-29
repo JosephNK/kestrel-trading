@@ -6,16 +6,18 @@ from datetime import date, datetime, timedelta, timezone
 # TradingDto: Trading 관련 데이터 전송 객체 (Data Transfer Object)
 class TradingDto(BaseModel):
     id: int = 0  # Trading ID
+    ticker: str | None = None  # 거래 통화
     decision: str | None = None  # 거래 결정 (매수/매도 등)
     reason: str | None = None  # 결정 이유
-    confidence: str | None = None  # 신뢰도
-    ratio: str | None = None  # 비율
+    trading_value: float | None = None  # 거래 금액
     total_tokens: int | None = None  # 총 토큰
     prompt_tokens: int | None = None  # 프롬프트 토큰
     completion_tokens: int | None = None  # 완성 토큰
     total_cost: float | None = None  # 총 비용
+    exchange_provider: str | None = None  # 거래소 제공자
     created_at: datetime | None = None  # 생성 시간
     updated_at: datetime | None = None  # 수정 시간
+    deleted_at: datetime | None = None  # 삭제 시간
 
     class Config:
         alias_generator = to_camel  # snake_case를 camelCase로 변환
