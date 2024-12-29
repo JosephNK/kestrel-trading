@@ -103,7 +103,12 @@ class TALibIndicator(TechnicalIndicator):
         )
 
 
-class TradingStrategy:
+# 전략 분석을 위한 프로토콜
+class StrategyAnalyze(Protocol):
+    def analyze(self, market_data: MarketData) -> Tuple[List[str], List[str]]: ...
+
+
+class TradingStrategy(StrategyAnalyze):
     def __init__(self, params: TradingParameters, indicator: TechnicalIndicator):
         self.params = params
         self.indicator = indicator
