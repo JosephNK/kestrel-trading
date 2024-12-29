@@ -97,6 +97,8 @@ class TradingStrategy:
         self.macdsignal_prev = None
 
     def analyze(self, market_data: MarketData) -> Tuple[List[str], List[str]]:
+        check_index = -1  # -1 인덱스는 배열의 마지막 요소
+
         # 기술적 지표 계산
         rsi = self.indicator.calculate_rsi(market_data.close, self.params.rsi_period)
         macd, macdsignal, _ = self.indicator.calculate_macd(
@@ -119,44 +121,60 @@ class TradingStrategy:
         macd_dead_cross = False
 
         if self.macd_prev is not None and self.macdsignal_prev is not None:
-            if self.macd_prev < self.macdsignal_prev and macd[-1] > macdsignal[-1]:
+            if (
+                self.macd_prev < self.macdsignal_prev
+                and macd[check_index] > macdsignal[check_index]
+            ):
                 macd_golden_cross = True
-            if self.macd_prev > self.macdsignal_prev and macd[-1] < macdsignal[-1]:
+            if (
+                self.macd_prev > self.macdsignal_prev
+                and macd[check_index] < macdsignal[check_index]
+            ):
                 macd_dead_cross = True
 
-        self.macd_prev = macd[-1]
-        self.macdsignal_prev = macdsignal[-1]
+        self.macd_prev = macd[check_index]
+        self.macdsignal_prev = macdsignal[check_index]
+
+        print(
+            f"[Strategy Analyze Values]\n"
+            f"* 과매도 기준값: {self.params.stoch_oversold}\n"
+            f"* 과매수 기준값: {self.params.stoch_overbought}\n"
+            f"* RSI 기준값: {self.params.rsi_threshold}\n"
+            f"- Stoch K: {slowk[check_index]:.2f}\n"
+            f"- Stoch D: {slowd[check_index]:.2f}\n"
+            f"- RSI: {rsi[check_index]:.2f}"
+        )
 
         # 매수/매도 조건 검사
         buy_conditions = [
             (
-                slowk[-1] < self.params.stoch_oversold,
-                f"Stoch K: {slowk[-1]:.2f} < {self.params.stoch_oversold}",
+                slowk[check_index] < self.params.stoch_oversold,
+                f"Stoch K: {slowk[check_index]:.2f} < {self.params.stoch_oversold}",
             ),
             (
-                slowd[-1] < self.params.stoch_oversold,
-                f"Stoch D: {slowd[-1]:.2f} < {self.params.stoch_oversold}",
+                slowd[check_index] < self.params.stoch_oversold,
+                f"Stoch D: {slowd[check_index]:.2f} < {self.params.stoch_oversold}",
             ),
             (macd_golden_cross, "MACD 골든크로스"),
             (
-                rsi[-1] > self.params.rsi_threshold,
-                f"RSI: {rsi[-1]:.2f} > {self.params.rsi_threshold}",
+                rsi[check_index] > self.params.rsi_threshold,
+                f"RSI: {rsi[check_index]:.2f} > {self.params.rsi_threshold}",
             ),
         ]
 
         sell_conditions = [
             (
-                slowk[-1] > self.params.stoch_overbought,
-                f"Stoch K: {slowk[-1]:.2f} > {self.params.stoch_overbought}",
+                slowk[check_index] > self.params.stoch_overbought,
+                f"Stoch K: {slowk[check_index]:.2f} > {self.params.stoch_overbought}",
             ),
             (
-                slowd[-1] > self.params.stoch_overbought,
-                f"Stoch D: {slowd[-1]:.2f} > {self.params.stoch_overbought}",
+                slowd[check_index] > self.params.stoch_overbought,
+                f"Stoch D: {slowd[check_index]:.2f} > {self.params.stoch_overbought}",
             ),
             (macd_dead_cross, "MACD 데드크로스"),
             (
-                rsi[-1] < self.params.rsi_threshold,
-                f"RSI: {rsi[-1]:.2f} < {self.params.rsi_threshold}",
+                rsi[check_index] < self.params.rsi_threshold,
+                f"RSI: {rsi[check_index]:.2f} < {self.params.rsi_threshold}",
             ),
         ]
 

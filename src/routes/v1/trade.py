@@ -107,6 +107,12 @@ async def trade_agent(
         # 매매 실행
         trading_response = trader_service.run_trade(
             dto=trading_signal_dto,
+            # dto=TradingSignalDto(
+            #     ticker=ticker,
+            #     decision="HOLD",
+            #     reason="임시 테스트 중입니다. (실거래를 원하시면 decision 값을 BUY 또는 SELL로 변경해주세요.)",
+            #     connect_live=False,
+            # ),
             buy_percent=buy_percent,
             sell_percent=sell_percent,
         )
@@ -114,7 +120,7 @@ async def trade_agent(
         trading_response.item.total_tokens = total_tokens
         trading_response.item.prompt_tokens = prompt_tokens
         trading_response.item.completion_tokens = completion_tokens
-        trading_response.item.total_cost = total_cost
+        trading_response.item.total_token_cost = total_cost
 
         return trading_response
     except HttpJsonException as e:

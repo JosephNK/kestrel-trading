@@ -13,7 +13,7 @@ class TradingDto(BaseModel):
     total_tokens: int | None = None  # 총 토큰
     prompt_tokens: int | None = None  # 프롬프트 토큰
     completion_tokens: int | None = None  # 완성 토큰
-    total_cost: float | None = None  # 총 비용
+    total_token_cost: float | None = None  # 총 토큰 비용
     exchange_provider: str | None = None  # 거래소 제공자
     connect_live: bool = True  # 실시간 연결 여부
     created_at: datetime | None = None  # 생성 시간
