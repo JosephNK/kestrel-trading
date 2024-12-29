@@ -57,6 +57,7 @@ async def trade_strategy(
                 ticker=ticker,
                 decision="HOLD",
                 reason="임시 테스트 중입니다. (실거래를 원하시면 decision 값을 BUY 또는 SELL로 변경해주세요.)",
+                connect_live=False,
             ),
             buy_percent=buy_percent,
             sell_percent=sell_percent,

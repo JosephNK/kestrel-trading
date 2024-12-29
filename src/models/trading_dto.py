@@ -15,6 +15,7 @@ class TradingDto(BaseModel):
     completion_tokens: int | None = None  # 완성 토큰
     total_cost: float | None = None  # 총 비용
     exchange_provider: str | None = None  # 거래소 제공자
+    connect_live: bool = True  # 실시간 연결 여부
     created_at: datetime | None = None  # 생성 시간
     updated_at: datetime | None = None  # 수정 시간
     deleted_at: datetime | None = None  # 삭제 시간

@@ -10,6 +10,7 @@ class TradingSignalDto(BaseModel):
     decision: str | None = None  # 거래 신호 (BUY/SELL/HOLD)
     reason: str | None = None  # 거래 신호 이유
     exchange_provider: str | None = None  # 거래소 제공자
+    connect_live: bool = True  # 실시간 연결 여부
     created_at: datetime | None = None  # 생성 시간
     updated_at: datetime | None = None  # 수정 시간
     deleted_at: datetime | None = None  # 삭제 시간

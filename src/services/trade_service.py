@@ -36,6 +36,7 @@ class TradeService:
                 buy_percent=buy_percent,
                 sell_percent=sell_percent,
             )
+            trading_dto.connect_live = dto.connect_live
 
             return BaseResponse[TradingDto](
                 status_code=status.HTTP_200_OK,
