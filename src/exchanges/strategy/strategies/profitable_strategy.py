@@ -208,7 +208,7 @@ class TradingStrategy(StrategyAnalyze):
 
 
 # Backtrader에서 사용하는 전략 클래스
-class ProfitableStrategy(bt.Strategy):
+class BackTestingProfitableStrategy(bt.Strategy):
     def __init__(self):
         self.trading_strategy = TradingStrategy(TradingParameters(), TALibIndicator())
         self.data_close = self.data.close
@@ -246,7 +246,7 @@ class ProfitableStrategy(bt.Strategy):
 
 
 # 실시간 전략 클래스
-class ProfitableRealTimeStrategy:
+class RealTimeProfitableStrategy:
     def __init__(self, df: pd.DataFrame):
         if not all(col in df.columns for col in ["close", "high", "low"]):
             raise ValueError(

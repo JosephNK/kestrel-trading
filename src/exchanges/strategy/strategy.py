@@ -11,8 +11,9 @@ from src.exchanges.strategy.strategies.datas.custom_pandas_data import (
 from src.exchanges.strategy.strategies.datas.custom_percent_sizer import (
     CustomPercentSizer,
 )
-from src.exchanges.strategy.strategies.dca_strategy import DCAStrategy
-from src.exchanges.strategy.strategies.profitable_strategy import ProfitableStrategy
+from src.exchanges.strategy.strategies.profitable_strategy import (
+    BackTestingProfitableStrategy,
+)
 
 
 class BacktestingStrategy:
@@ -53,7 +54,7 @@ class BacktestingStrategy:
             )
 
             # 전략 추가
-            cerebro.addstrategy(ProfitableStrategy)
+            cerebro.addstrategy(BackTestingProfitableStrategy)
             # cerebro.addstrategy(
             #     DCAStrategy,
             #     investment_amount=initial_cash,

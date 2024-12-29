@@ -9,7 +9,7 @@ from src.agents.kestrel_agent import KestrelAiAgent
 from src.agents.prompts.prompt import KestrelPrompt
 from src.exchanges.strategy.strategies.datas.types import StrategyType, TradingSignal
 from src.exchanges.strategy.strategies.profitable_strategy import (
-    ProfitableRealTimeStrategy,
+    RealTimeProfitableStrategy,
 )
 from src.exchanges.upbit.upbit_exchange import UpbitExchange
 from src.models.exception.http_json_exception import HttpJsonException
@@ -29,7 +29,7 @@ class ExchangeService:
     def get_profitable_strategy_trading_signal(
         self, df: pd.DataFrame
     ) -> Tuple[TradingSignal, str]:
-        strategy = ProfitableRealTimeStrategy(df=df)
+        strategy = RealTimeProfitableStrategy(df=df)
         return strategy.analyze_market()
 
     # 전략에 따른 Trading Signal 생성
