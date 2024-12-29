@@ -5,6 +5,7 @@ from src.exchanges.strategy.strategies.profitable_strategy import (
 )
 from src.exchanges.strategy.strategy import BacktestingStrategy
 from src.exchanges.upbit.upbit_exchange import UpbitExchange
+from src.utils.whale_etherscan import EtherscanWhaleTransaction
 
 load_dotenv()
 
@@ -61,5 +62,17 @@ def main4():
         print(e)
 
 
+def main5():
+    try:
+        whale = EtherscanWhaleTransaction()
+        transactions = whale.get_historical_wbtc_transactions(
+            start_date="2024-01-01",
+            end_date="2024-01-31",
+        )
+        whale.print_transaction_summary(transactions)
+    except Exception as e:
+        print(e)
+
+
 if __name__ == "__main__":
-    main2()
+    main5()
