@@ -9,6 +9,20 @@ import talib
 
 from src.exchanges.strategy.strategies.datas.types import TradingSignal
 
+"""
+Profitable Strategy 조건
+
+- 매수 조건
+1. 스토캐스틱 20 수치 미만
+2. MACD 상향 교차
+3. RSI 50 수치 이상
+
+- 매도 조건
+1. 스토캐스틱 80 수치 초과
+2. MACD 하향 교차
+3. RSI 50 수치 미만
+"""
+
 
 @dataclass
 class TradingParameters:
