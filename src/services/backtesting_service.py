@@ -36,16 +36,24 @@ class BacktestingService(BaseService):
 
             backtesting = Backtesting()
 
+            item: BackTestingDto = None
+
             if strategy_type == StrategyType.PROFITABLE:
-                backtesting.run_profitable_strategy(candle_df)
+                item = backtesting.run_profitable_strategy(
+                    ticker=ticker,
+                    df=candle_df,
+                )
+                item.exchange_provider = self.exchange.get_provider()
+
+            if item is None:
+                raise HttpJsonException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    error_message=str("BackTesting Result Not Found"),
+                )
 
             return BaseResponse[BackTestingDto](
                 status_code=status.HTTP_200_OK,
-                item=BackTestingDto(
-                    ticker=ticker,
-                    exchange_provider=self.exchange.get_provider(),
-                    created_at=datetime.now(),
-                ),
+                item=item,
             )
         except HttpJsonException as e:
             raise e

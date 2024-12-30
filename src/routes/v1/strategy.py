@@ -1,5 +1,6 @@
 from fastapi import status, APIRouter, Depends
 from src.databases.database import get_db
+from src.models.backtesting_dto import BackTestingDto
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_signal_dto import TradingSignalDto
@@ -56,7 +57,7 @@ async def strategy(
 @router.get(
     "/strategy/backtesting",
     status_code=status.HTTP_200_OK,
-    response_model=BaseResponse[TradingSignalDto],
+    response_model=BaseResponse[BackTestingDto],
 )
 async def strategy_backtesting(
     backtesting_service: BacktestingService = Depends(get_backtesting_service),

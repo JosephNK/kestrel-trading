@@ -8,7 +8,7 @@ class CandleGraphChart:
         transactions,
         df: pd.DataFrame,
         filename: str = "backtrader_plot",
-    ):
+    ) -> str:
         # 매수/매도 시그널 추출
         buy_signals = []
         sell_signals = []
@@ -95,7 +95,11 @@ class CandleGraphChart:
             [df.index[i].strftime("%Y-%m-%d") for i in date_ticks], rotation=45
         )
 
+        file_path = f"assets/{filename}.png"
+
         # 그래프 저장
         plt.tight_layout()
-        plt.savefig(f"assets/{filename}.png")
+        plt.savefig(file_path)
         plt.close()
+
+        return file_path

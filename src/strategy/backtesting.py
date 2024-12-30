@@ -1,6 +1,7 @@
 import pandas as pd
 import backtrader as bt
 
+from src.models.backtesting_dto import BackTestingDto
 from src.strategy.analyzer.analyzer import BackTestingAnalyzer
 from src.strategy.strategies.helpers.custom_pandas_data import CustomPandasData
 from src.strategy.strategies.helpers.custom_percent_sizer import CustomPercentSizer
@@ -15,10 +16,11 @@ class Backtesting:
 
     def run_profitable_strategy(
         self,
-        df: pd.DataFrame,
+        ticker: str = "KRW-BTC",
+        df: pd.DataFrame = None,
         initial_cash: int = 100000000,
         commission: float = 0.0005,
-    ):
+    ) -> BackTestingDto:
         try:
             # 데이터 준비 및 전략 실행
             df.index = pd.to_datetime(df.index)
@@ -58,7 +60,7 @@ class Backtesting:
                 df=df,
                 initial_cash=initial_cash,
             )
-            backtesting_analyzer.run()
+            return backtesting_analyzer.run(ticker=ticker)
 
         except Exception as e:
-            print("Exception occurred:", e)
+            raise ValueError(f"Backtesting failed {e}")

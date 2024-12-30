@@ -2,12 +2,12 @@ import inspect
 
 from fastapi import status
 
-from src.exchanges.strategy.strategies.profitable_strategy import TradingSignal
 from src.exchanges.upbit_exchange import UpbitExchange
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_dto import TradingDto
 from src.models.trading_signal_dto import TradingSignalDto
+from src.models.types.types import TradingSignal
 from src.services.base.base_service import BaseService
 from src.utils.logging import Logging
 

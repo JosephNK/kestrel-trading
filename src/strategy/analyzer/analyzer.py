@@ -1,6 +1,7 @@
 import pandas as pd
 import backtrader as bt
 
+from src.models.backtesting_dto import BackTestingDto, BackTestingTransactionDto
 from src.strategy.analyzer.helpers.candle_graph_chart import CandleGraphChart
 
 
@@ -56,8 +57,9 @@ class BackTestingAnalyzer:
 
     def run(
         self,
+        ticker: str = "KRW-BTC",
         save_filename: str = "backtrader_plot",
-    ):
+    ) -> BackTestingDto:
         # 백테스팅 실행
         print("\n=== 백테스팅 결과 ===")
 
@@ -95,31 +97,25 @@ class BackTestingAnalyzer:
         """
         transactions = strat.analyzers.Transactions.get_analysis()
 
-        # Sharpe Ratio가 None인 경우를 처리하기 위한 조건문 추가
-        if sharpe_ratio is None:
-            print(f"- Sharpe Ratio: Not Available")
-        else:
-            print(f"- Sharpe Ratio: {sharpe_ratio:.2f}")
-
-        # Returns를 퍼센트로 변환 (소수점 2자리)
-        print(f"- Total Returns: {returns*100:.2f}%")
-
-        # DrawDown 출력 (소수점 2자리)
-        print(f"- Maximum Drawdown: {draw_down:.2f}%")
-
-        # ROI 출력
+        # 보조 결과 출력
+        sharpe_ratio_value = f"{(sharpe_ratio if sharpe_ratio is not None else 0):.2f}"
+        total_returns_per = f"{(returns*100 if returns is not None else 0):.2f}"
+        maximum_drawdown_per = f"{(draw_down if draw_down is not None else 0):.2f}"
         roi = (final_value - first_value) / first_value * 100
-        print(f"- 투자수익률: {roi:.2f}%")
+        roi_per = f"{(roi if roi is not None else 0):.2f}"
 
-        # 총 거래 횟수
+        print(f"- Sharpe Ratio: {sharpe_ratio_value}")
+        print(f"- Total Returns: {total_returns_per}%")
+        print(f"- Maximum Drawdown: {maximum_drawdown_per}%")
+        print(f"- 투자 수익률: {roi_per}%")
         print(f"- 총 거래 횟수: {len(transactions)}건")
 
         # 거래 내역 출력
-        self.get_transactions(transactions)
+        transaction_dtos = self.get_transactions(transactions)
 
         # 결과 그래프 출력
         # self.cerebro.plot(style="candle", volume=True)
-        CandleGraphChart.save_fig(
+        file_path = CandleGraphChart.save_fig(
             transactions,
             df=self.df,
             filename=save_filename,
@@ -133,16 +129,31 @@ class BackTestingAnalyzer:
         # transactions.to_csv("result/transactions.csv")
         # gross_lev.to_csv("result/gross_lev.csv")
 
-    def get_transactions(self, transactions):
-        # # 거래 내역 출력
-        # for date, trades in transactions.items():
-        #     print("---")
-        #     for trade in trades:
-        #         print(f"거래일시: {date}")
-        #         print(f"  - 주문수량: {trade[0]:,.2f}")  # amount
-        #         print(f"  - 체결가격: {trade[1]:,.2f}")  # price
-        #         print(f"  - 종목ID: {trade[2]}")  # sid
-        #         print(f"  - 종목코드: {trade[3]}")  # symbol
-        #         print(f"  - 거래금액: {trade[4]:,.2f}")  # value
-        #         print("---")
-        pass
+        return BackTestingDto(
+            ticker=ticker,
+            initial_portfolio_value=first_value,
+            final_portfolio_value=final_value,
+            sharpe_ratio=sharpe_ratio_value,
+            total_returns_per=total_returns_per,
+            maximum_drawdown_per=maximum_drawdown_per,
+            roi_per=roi_per,
+            transactions=transaction_dtos,
+            candle_graph_chart_file_path=file_path,
+        )
+
+    def get_transactions(self, transactions) -> list[BackTestingTransactionDto]:
+        # 거래 내역 출력
+        items: list[BackTestingTransactionDto] = []
+        for date, trades in transactions.items():
+            for trade in trades:
+                items.append(
+                    BackTestingTransactionDto(
+                        order_quantity=trade[0],  # amount 주문수량
+                        execution_price=trade[1],  # price 체결가격
+                        stock_id=str(trade[2]),  # sid 종목ID
+                        stock_code=str(trade[3]),  # symbol 종목코드
+                        transaction_value=trade[4],  # value 거래금액
+                        executed_at=date,  # date 거래일시
+                    )
+                )
+        return items
