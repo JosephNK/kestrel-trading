@@ -1,19 +1,10 @@
 import pandas as pd
 import backtrader as bt
 
-from src.exchanges.strategy.analyzer.analyzer import (
-    BackTestingAnalyzer,
-    TradeAnalyzer,
-)
-from src.exchanges.strategy.strategies.datas.custom_pandas_data import (
-    CustomPandasData,
-)
-from src.exchanges.strategy.strategies.datas.custom_percent_sizer import (
-    CustomPercentSizer,
-)
-from src.exchanges.strategy.strategies.profitable_strategy import (
-    BackTestingProfitableStrategy,
-)
+from src.strategy.analyzer.analyzer import BackTestingAnalyzer
+from src.strategy.strategies.helpers.custom_pandas_data import CustomPandasData
+from src.strategy.strategies.helpers.custom_percent_sizer import CustomPercentSizer
+from src.strategy.strategies.profitable_strategy import BackTestingProfitableStrategy
 
 
 class Backtesting:
@@ -68,11 +59,6 @@ class Backtesting:
                 initial_cash=initial_cash,
             )
             backtesting_analyzer.run()
-
-            # 결과 그래프 출력
-            # self.cerebro.plot(style="candle", volume=True)
-            ## figure = cerebro.plot(style="candle", volume=True)[0][0]
-            ## figure.savefig("backtest_result.png")
 
         except Exception as e:
             print("Exception occurred:", e)

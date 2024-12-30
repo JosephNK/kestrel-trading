@@ -7,14 +7,14 @@ import pandas as pd
 
 from datetime import datetime
 
+from src.exchanges.base.base_exchange import BaseExchange
 from src.models.trading_dto import TradingDto
-from src.utils.fng import Fng
+from src.models.types.types import ExchangeProvider
 from src.utils.indicator import Indicator
 from src.utils.logging import Logging
-from src.utils.news import News
 
 
-class UpbitExchange:
+class UpbitExchange(BaseExchange):
     """
     업비트 거래소와의 상호작용을 담당하는 클래스
     - 시장 데이터 조회
@@ -23,9 +23,6 @@ class UpbitExchange:
     을 처리합니다.
     """
 
-    ticker: str  # 거래 대상 티커 (예: "KRW-BTC")
-    fee: float  # 거래 수수료 (0.05%)
-    min_trade_amount: int  # 최소 거래 금액 (5000원)
     access_key: str  # 업비트 API 접근 키
     secret_key: str  # 업비트 API 비밀 키
     upbit: pyupbit.Upbit  # 업비트 API 클라이언트 인스턴스
@@ -42,11 +39,11 @@ class UpbitExchange:
         self.secret_key = os.environ.get("UPBIT_SECRET_KEY")
         self.upbit = pyupbit.Upbit(self.access_key, self.secret_key)
 
-    def get_provider(self):
-        return "Upbit"
+    def get_provider(self) -> str:
+        return ExchangeProvider.UPBIT.value
 
     # Get Current Investment Status
-    def get_current_investment_status(self):
+    def get_current_investment_status(self) -> list:
         try:
             # 현재가 조회
             current_price = pyupbit.get_current_price(self.ticker)
@@ -96,7 +93,7 @@ class UpbitExchange:
             raise ValueError(f"Exception in Get Current Investment Status : {e}")
 
     # Get Orderbook Status
-    def get_orderbook_status(self):
+    def get_orderbook_status(self) -> dict:
         """
         현재 시장의 호가창(orderbook) 데이터를 조회하고 분석하는 함수
         매수/매도 호가의 물량과 가격을 단계별로 조회하여 시장 동향을 파악할 수 있음
@@ -172,7 +169,11 @@ class UpbitExchange:
             raise ValueError(f"Exception in Get Orderbook Status : {e}")
 
     # Get Candle Data
-    def get_candle(self, count: int = 24, interval: str = "day") -> pd.DataFrame:
+    def get_candle(
+        self,
+        count: int = 24,
+        interval: str = "day",
+    ) -> pd.DataFrame:
         """
         최근 X시간의 시간봉 데이터를 조회합니다.
 

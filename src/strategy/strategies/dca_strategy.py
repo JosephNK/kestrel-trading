@@ -1,5 +1,4 @@
 import backtrader as bt
-from datetime import datetime, timedelta
 
 
 class DCAStrategy(bt.Strategy):

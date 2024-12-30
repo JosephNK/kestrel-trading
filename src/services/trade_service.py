@@ -3,20 +3,18 @@ import inspect
 from fastapi import status
 
 from src.exchanges.strategy.strategies.profitable_strategy import TradingSignal
-from src.exchanges.upbit.upbit_exchange import UpbitExchange
+from src.exchanges.upbit_exchange import UpbitExchange
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_dto import TradingDto
 from src.models.trading_signal_dto import TradingSignalDto
+from src.services.base.base_service import BaseService
 from src.utils.logging import Logging
 
 
-class TradeService:
-    exchange: UpbitExchange
-
+class TradeService(BaseService):
     def __init__(self):
-        Logging.info("Creating an instance of TradeService!")
-        self.exchange = UpbitExchange()
+        super().__init__()
 
     def run_trade(
         self,
@@ -25,6 +23,8 @@ class TradeService:
         sell_percent: float = 50,
     ) -> BaseResponse[TradingDto]:
         try:
+            self.update_exchange()
+
             self.exchange.ticker = dto.ticker
 
             # 거래소 매매 실행

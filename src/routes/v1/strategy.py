@@ -1,9 +1,9 @@
 from fastapi import status, APIRouter, Depends
 from src.databases.database import get_db
-from src.exchanges.strategy.strategies.datas.types import StrategyType
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_signal_dto import TradingSignalDto
+from src.models.types.types import ExchangeProvider, StrategyType
 from src.routes.dependencies.services import (
     get_backtesting_service,
     get_exchange_service,
@@ -24,6 +24,7 @@ router = APIRouter()
 )
 async def strategy(
     exchange_service: ExchangeService = Depends(get_exchange_service),
+    exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     ticker: str = "KRW-BTC",
     strategy_type: StrategyType = StrategyType.PROFITABLE,
 ):
@@ -38,6 +39,7 @@ async def strategy(
     """
 
     try:
+        exchange_service.provider = exchange_provider
         return exchange_service.get_trading_signal_with_strategy(
             ticker=ticker,
             strategy_type=strategy_type,
@@ -58,10 +60,12 @@ async def strategy(
 )
 async def strategy_backtesting(
     backtesting_service: BacktestingService = Depends(get_backtesting_service),
+    exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     ticker: str = "KRW-BTC",
     strategy_type: StrategyType = StrategyType.PROFITABLE,
 ):
     try:
+        backtesting_service.provider = exchange_provider
         return backtesting_service.run_testing(
             ticker=ticker,
             strategy_type=strategy_type,

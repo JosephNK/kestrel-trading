@@ -6,27 +6,21 @@ from fastapi import status
 from typing import Tuple
 
 from src.agents.kestrel_agent import KestrelAiAgent
-from src.agents.prompts.prompt import KestrelPrompt
-from src.exchanges.strategy.strategies.datas.types import StrategyType, TradingSignal
-from src.exchanges.strategy.strategies.profitable_strategy import (
-    RealTimeProfitableStrategy,
-)
-from src.exchanges.upbit.upbit_exchange import UpbitExchange
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_signal_dto import TradingSignalDto
+from src.models.types.types import StrategyType, TradingSignal
+from src.services.base.base_service import BaseService
+from src.strategy.strategies.profitable_strategy import RealTimeProfitableStrategy
 from src.utils.logging import Logging
 
 
-class ExchangeService:
-    exchange: UpbitExchange
-
+class ExchangeService(BaseService):
     def __init__(self):
-        Logging.info("Creating an instance of ExchangeService!")
-        self.exchange = UpbitExchange()
+        super().__init__()
 
     # Profitable 전략에 따른 Trading Signal 생성
-    def get_profitable_strategy_trading_signal(
+    def __get_profitable_strategy_trading_signal(
         self, df: pd.DataFrame
     ) -> Tuple[TradingSignal, str]:
         strategy = RealTimeProfitableStrategy(df=df)
@@ -41,6 +35,8 @@ class ExchangeService:
         candle_interval: str = "day",
     ) -> BaseResponse[TradingSignalDto]:
         try:
+            self.update_exchange()
+
             self.exchange.ticker = ticker
 
             # 데이터 조회
@@ -54,7 +50,7 @@ class ExchangeService:
             if strategy_type == StrategyType.PROFITABLE:
                 # Profitable 전략
                 trading_signal, signal_condition = (
-                    self.get_profitable_strategy_trading_signal(df=candle_df)
+                    self.__get_profitable_strategy_trading_signal(df=candle_df)
                 )
 
             if trading_signal is None:
@@ -94,6 +90,8 @@ class ExchangeService:
         candle_interval: str = "day",
     ) -> Tuple[BaseResponse[TradingSignalDto], dict]:
         try:
+            self.update_exchange()
+
             self.exchange.ticker = ticker
 
             # 데이터 조회
@@ -107,7 +105,7 @@ class ExchangeService:
 
             if strategy_type == StrategyType.PROFITABLE:
                 # Profitable 전략
-                trading_signal, _ = self.get_profitable_strategy_trading_signal(
+                trading_signal, _ = self.__get_profitable_strategy_trading_signal(
                     df=candle_df
                 )
 

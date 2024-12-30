@@ -1,11 +1,12 @@
 from fastapi import Depends, status, APIRouter
 from requests import Session
+
 from src.databases.database import get_db
-from src.exchanges.strategy.strategies.datas.types import StrategyType
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_dto import TradingDto
 from src.models.trading_signal_dto import TradingSignalDto
+from src.models.types.types import ExchangeProvider, StrategyType
 from src.routes.dependencies.services import get_exchange_service, get_trade_service
 from src.services.exchange_service import ExchangeService
 from src.services.trade_service import TradeService
@@ -24,6 +25,7 @@ router = APIRouter()
 async def trade_strategy(
     trader_service: TradeService = Depends(get_trade_service),
     exchange_service: ExchangeService = Depends(get_exchange_service),
+    exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     ticker: str = "KRW-BTC",
     strategy_type: StrategyType = StrategyType.PROFITABLE,
     buy_percent: float = 30,
@@ -43,6 +45,7 @@ async def trade_strategy(
     """
 
     try:
+        exchange_service.provider = exchange_provider
         trading_signal_response = exchange_service.get_trading_signal_with_strategy(
             ticker=ticker,
             strategy_type=strategy_type,
@@ -51,6 +54,7 @@ async def trade_strategy(
         trading_signal_dto = trading_signal_response.item
 
         # 매매 실행
+        trader_service.provider = exchange_provider
         trading_response = trader_service.run_trade(
             # dto=trading_signal_dto,
             dto=TradingSignalDto(
@@ -81,6 +85,7 @@ async def trade_strategy(
 async def trade_agent(
     trader_service: TradeService = Depends(get_trade_service),
     exchange_service: ExchangeService = Depends(get_exchange_service),
+    exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     db: Session = Depends(get_db),
     ticker: str = "KRW-BTC",
     strategy_type: StrategyType = StrategyType.PROFITABLE,
@@ -88,6 +93,7 @@ async def trade_agent(
     sell_percent: float = 50,
 ):
     try:
+        exchange_service.provider = exchange_provider
         trading_signal_response, answer = (
             exchange_service.get_trading_signal_with_agent(
                 ticker=ticker,
@@ -105,6 +111,7 @@ async def trade_agent(
         total_cost = answer["total_cost"]
 
         # 매매 실행
+        trader_service.provider = exchange_provider
         trading_response = trader_service.run_trade(
             dto=trading_signal_dto,
             # dto=TradingSignalDto(

@@ -5,9 +5,10 @@ from langchain_community.callbacks import get_openai_callback
 # from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
 
-from src.exchanges.strategy.strategies.datas.types import StrategyType
 from pydantic import BaseModel, Field
 from typing import Literal
+
+from src.models.types.types import StrategyType
 
 
 class TradingDecision(BaseModel):

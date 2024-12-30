@@ -5,21 +5,18 @@ from datetime import datetime
 from fastapi import status
 
 
-from src.exchanges.strategy.strategies.datas.types import StrategyType
-from src.exchanges.strategy.backtesting import Backtesting
-from src.exchanges.upbit.upbit_exchange import UpbitExchange
 from src.models.backtesting_dto import BackTestingDto
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
+from src.models.types.types import StrategyType
+from src.services.base.base_service import BaseService
+from src.strategy.backtesting import Backtesting
 from src.utils.logging import Logging
 
 
-class BacktestingService:
-    exchange: UpbitExchange
-
+class BacktestingService(BaseService):
     def __init__(self):
-        Logging.info("Creating an instance of BacktestingService!")
-        self.exchange = UpbitExchange()
+        super().__init__()
 
     def run_testing(
         self,
@@ -29,6 +26,8 @@ class BacktestingService:
         candle_interval: str = "day",
     ) -> BaseResponse[BackTestingDto]:
         try:
+            self.update_exchange()
+
             self.exchange.ticker = ticker
 
             candle_df = self.exchange.get_candle(

@@ -1,5 +1,3 @@
-from enum import Enum
-
 from dataclasses import dataclass
 from typing import List, Tuple, Protocol
 import backtrader as bt
@@ -7,7 +5,7 @@ import pandas as pd
 import numpy as np
 import talib
 
-from src.exchanges.strategy.strategies.datas.types import TradingSignal
+from src.models.types.types import TradingSignal
 
 """
 Profitable Strategy 조건
@@ -260,19 +258,13 @@ class BackTestingProfitableStrategy(bt.Strategy):
 
         self.order = None  # 주문 상태 초기화
 
-    def notify_trade(self, trade):
-        print(
-            f"Strategy Trade Status: isopen={trade.isopen}, isclosed={trade.isclosed}"
-        )
-        if trade.isclosed:
-            print(
-                "---------------------------- TRADE ---------------------------------"
-            )
-            print(f"Date: {self.data.datetime.date(0)}")
-            print(f"Type: {'sell' if trade.long else 'buy'}")
-            print(f"Price: {trade.price}")
-            print(f"Size: {trade.size}")
-            print(f"PnL: {trade.pnl}")
+    # def notify_trade(self, trade):
+    #     print("---------------------------- TRADE ---------------------------------")
+    #     print(f"Date: {self.data.datetime.date(0)}")
+    #     print(f"Type: {'sell' if trade.long else 'buy'}")
+    #     print(f"Price: {trade.price}")
+    #     print(f"Size: {trade.size}")
+    #     print(f"PnL: {trade.pnl}")
 
     def log(self, txt, dt=None):
         dt = dt or self.datas[0].datetime.date(0)

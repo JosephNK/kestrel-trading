@@ -1,10 +1,9 @@
 from dotenv import load_dotenv
+
 from src.agents.kestrel_agent import KestrelAiAgent
-from src.exchanges.strategy.strategies.profitable_strategy import (
-    ProfitableRealTimeStrategy,
-)
-from src.exchanges.strategy.backtesting import Backtesting
-from src.exchanges.upbit.upbit_exchange import UpbitExchange
+from src.exchanges.upbit_exchange import UpbitExchange
+from src.strategy.backtesting import Backtesting
+from src.strategy.strategies.profitable_strategy import RealTimeProfitableStrategy
 from src.utils.whale_etherscan import EtherscanWhaleTransaction
 
 load_dotenv()
@@ -24,7 +23,7 @@ def main2():
     try:
         exchange = UpbitExchange()
         day_candle_df = exchange.get_candle(count=200, interval="day")
-        strategy = ProfitableRealTimeStrategy(df=day_candle_df)
+        strategy = RealTimeProfitableStrategy(df=day_candle_df)
         # 전체 데이터에 대해 순차적으로 분석
         for i in range(50, len(day_candle_df)):
             signal = strategy.analyze_market(current_index=i)
