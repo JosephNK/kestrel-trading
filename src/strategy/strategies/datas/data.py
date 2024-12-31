@@ -25,17 +25,6 @@ class EntryPosition:
 
 
 @dataclass
-class TradingPercent:
-    buy_percent: float  # 매수시 사용할 퍼센트
-    sell_percent: float  # 매도시 사용할 퍼센트
-
-    def __init__(self, buy_percent: float = 10, sell_percent: float = 20):
-        self.buy_percent = buy_percent
-        self.sell_percent = sell_percent
-
-
-@dataclass
 class TradingAnalyzeData:
     signal: TradingSignal
     reason: str
-    trading_percent: TradingPercent  # 매매 비율

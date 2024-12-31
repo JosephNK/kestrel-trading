@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Protocol
+from typing import Optional
 import backtrader as bt
 import pandas as pd
 import numpy as np
-import talib
 
 from src.models.types.types import TradingSignal
 from src.strategy.strategies.base.base_strategy import BaseStrategy
@@ -11,7 +10,6 @@ from src.strategy.strategies.datas.data import (
     EntryPosition,
     MarketData,
     TradingAnalyzeData,
-    TradingPercent,
 )
 from src.strategy.strategies.helpers.custom_indicator import (
     CustomIndicator,
@@ -40,7 +38,6 @@ class TradingStrategy:
         self,
         market_data: MarketData,
         check_index: int = -1,
-        trading_percent: Optional[TradingPercent] = None,
     ) -> TradingAnalyzeData:
         """
         RSI 기반 매매 전략
@@ -56,8 +53,7 @@ class TradingStrategy:
             self.prev_rsi = current_rsi
             return TradingAnalyzeData(
                 signal=TradingSignal.HOLD,
-                reason="RSI 초기화",
-                trading_percent=trading_percent,
+                reason=f"현재 RSI: {current_rsi:.2f}",
             )
 
         # 매수 신호: RSI가 과매도 구간에서 상승반전
@@ -70,7 +66,6 @@ class TradingStrategy:
             return TradingAnalyzeData(
                 signal=TradingSignal.BUY,
                 reason=reason,
-                trading_percent=trading_percent,
             )
 
         # 매도 신호: RSI가 과매수 구간에서 하락반전
@@ -83,7 +78,6 @@ class TradingStrategy:
             return TradingAnalyzeData(
                 signal=TradingSignal.SELL,
                 reason=reason,
-                trading_percent=trading_percent,
             )
 
         # RSI 값 업데이트
@@ -92,7 +86,6 @@ class TradingStrategy:
         return TradingAnalyzeData(
             signal=TradingSignal.HOLD,
             reason=f"현재 RSI: {current_rsi:.2f}",
-            trading_percent=trading_percent,
         )
 
 
@@ -117,7 +110,6 @@ class BackTestingRSIStrategy(bt.Strategy):
 
         trading_analyze_data = self.trading_strategy.analyze(
             market_data,
-            trading_percent=None,
         )
 
         if trading_analyze_data is None:
@@ -180,15 +172,13 @@ class RealTimeRSIStrategy(BaseStrategy):
 
     def analyze_market(
         self,
-        current_index: Optional[int] = None,
-        trading_percent: Optional[TradingPercent] = None,
         entry_position: Optional[EntryPosition] = None,
     ) -> TradingAnalyzeData | None:
-        super().analyze_market(current_index, trading_percent, entry_position)
+        super().analyze_market(entry_position)
 
+        # 전략 분석
         trading_analyze_data = self.trading_strategy.analyze(
-            self.market_data,
-            trading_percent=self.trading_percent,
+            market_data=self.market_data,
         )
 
         # 손절/익절 체크

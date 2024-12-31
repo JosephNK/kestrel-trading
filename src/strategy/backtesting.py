@@ -3,7 +3,6 @@ import backtrader as bt
 
 from src.models.backtesting_dto import BackTestingDto
 from src.strategy.analyzer.analyzer import BackTestingAnalyzer
-from src.strategy.strategies.datas.data import TradingPercent
 from src.strategy.strategies.helpers.custom_pandas_data import CustomPandasData
 from src.strategy.strategies.helpers.custom_percent_sizer import CustomPercentSizer
 from src.strategy.strategies.profitable_strategy import BackTestingProfitableStrategy
@@ -42,14 +41,10 @@ class Backtesting:
             self.cerebro.broker.setcommission(commission=initial_commission)
 
             # Percent Sizer
-            trading_percent = TradingPercent(
-                buy_percent=30,
-                sell_percent=50,
-            )
             self.cerebro.addsizer(
                 CustomPercentSizer,
-                buy_percent=trading_percent.buy_percent,
-                sell_percent=trading_percent.sell_percent,
+                # buy_percent=30,
+                # sell_percent=50,
             )
 
             # 백테스팅 결과
@@ -88,14 +83,10 @@ class Backtesting:
             self.cerebro.broker.setcommission(commission=initial_commission)
 
             # Percent Sizer
-            trading_percent = TradingPercent(
-                buy_percent=30,
-                sell_percent=50,
-            )
             self.cerebro.addsizer(
                 CustomPercentSizer,
-                buy_percent=trading_percent.buy_percent,
-                sell_percent=trading_percent.sell_percent,
+                # buy_percent=30,
+                # sell_percent=50,
             )
 
             # 백테스팅 결과
@@ -134,14 +125,10 @@ class Backtesting:
             self.cerebro.broker.setcommission(commission=initial_commission)
 
             # Percent Sizer
-            trading_percent = TradingPercent(
-                buy_percent=30,
-                sell_percent=50,
-            )
             self.cerebro.addsizer(
                 CustomPercentSizer,
-                buy_percent=trading_percent.buy_percent,
-                sell_percent=trading_percent.sell_percent,
+                # buy_percent=30,
+                # sell_percent=50,
             )
 
             # 백테스팅 결과

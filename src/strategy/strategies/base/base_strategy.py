@@ -6,7 +6,6 @@ from src.strategy.strategies.datas.data import (
     EntryPosition,
     MarketData,
     TradingAnalyzeData,
-    TradingPercent,
 )
 
 
@@ -14,8 +13,6 @@ class BaseStrategy:
     df: pd.DataFrame
     window_size: int
     market_data: MarketData
-    current_index: Optional[int]
-    trading_percent: Optional[TradingPercent]
     entry_position: Optional[EntryPosition]
 
     def __init__(self, df: pd.DataFrame):
@@ -29,8 +26,6 @@ class BaseStrategy:
 
     def analyze_market(
         self,
-        current_index: Optional[int] = None,
-        trading_percent: Optional[TradingPercent] = None,
         entry_position: Optional[EntryPosition] = None,
     ) -> TradingAnalyzeData | None:
         """
@@ -42,21 +37,12 @@ class BaseStrategy:
             entry_position: 진입 포지션 설정
         """
 
-        if current_index is None:
-            current_index = len(self.df) - 1
-
-        self.current_index = current_index
-
-        if trading_percent is None:
-            trading_percent = TradingPercent()
-
-        self.trading_percent = trading_percent
-
         self.entry_position = entry_position
 
         # 최근 50개 데이터만 슬라이싱
-        start_idx = max(0, current_index - self.window_size + 1)
-        end_idx = current_index + 1
+        last_index = len(self.df) - 1
+        start_idx = max(0, last_index - self.window_size + 1)
+        end_idx = last_index + 1
 
         self.market_data = MarketData(
             close=self.df["close"].values[start_idx:end_idx],

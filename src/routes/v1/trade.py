@@ -25,9 +25,12 @@ router = APIRouter()
 async def trade_strategy(
     trader_service: TradeService = Depends(get_trade_service),
     exchange_service: ExchangeService = Depends(get_exchange_service),
+    db: Session = Depends(get_db),
     exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     ticker: str = "KRW-BTC",
     strategy_type: StrategyType = StrategyType.RSI,
+    candle_count: int = 200,
+    candle_interval: str = "day",
     buy_percent: float = 30,
     sell_percent: float = 50,
 ):
@@ -49,6 +52,8 @@ async def trade_strategy(
         trading_signal_response = exchange_service.get_trading_signal_with_strategy(
             ticker=ticker,
             strategy_type=strategy_type,
+            candle_count=candle_count,
+            candle_interval=candle_interval,
         )
 
         trading_signal_dto = trading_signal_response.item
@@ -85,10 +90,12 @@ async def trade_strategy(
 async def trade_agent(
     trader_service: TradeService = Depends(get_trade_service),
     exchange_service: ExchangeService = Depends(get_exchange_service),
-    exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     db: Session = Depends(get_db),
+    exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     ticker: str = "KRW-BTC",
     strategy_type: StrategyType = StrategyType.RSI,
+    candle_count: int = 30,
+    candle_interval: str = "day",
     buy_percent: float = 30,
     sell_percent: float = 50,
 ):
@@ -98,8 +105,8 @@ async def trade_agent(
             exchange_service.get_trading_signal_with_agent(
                 ticker=ticker,
                 strategy_type=strategy_type,
-                candle_count=30,
-                candle_interval="day",
+                candle_count=candle_count,
+                candle_interval=candle_interval,
             )
         )
 
@@ -113,13 +120,13 @@ async def trade_agent(
         # 매매 실행
         trader_service.provider = exchange_provider
         trading_response = trader_service.run_trade(
-            # dto=trading_signal_dto,
-            dto=TradingSignalDto(
-                ticker=ticker,
-                decision="HOLD",
-                reason="임시 테스트 중입니다. (실거래를 원하시면 decision 값을 BUY 또는 SELL로 변경해주세요.)",
-                connect_live=False,
-            ),
+            dto=trading_signal_dto,
+            # dto=TradingSignalDto(
+            #     ticker=ticker,
+            #     decision="HOLD",
+            #     reason="임시 테스트 중입니다. (실거래를 원하시면 decision 값을 BUY 또는 SELL로 변경해주세요.)",
+            #     connect_live=False,
+            # ),
             buy_percent=buy_percent,
             sell_percent=sell_percent,
         )

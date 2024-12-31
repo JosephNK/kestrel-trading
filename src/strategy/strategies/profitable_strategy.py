@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Protocol
+from typing import Optional
 import backtrader as bt
 import pandas as pd
 import numpy as np
-import talib
 
 from src.models.types.types import TradingSignal
 from src.strategy.strategies.base.base_strategy import BaseStrategy
@@ -12,7 +11,6 @@ from src.strategy.strategies.datas.data import (
     MarketData,
     RiskPosition,
     TradingAnalyzeData,
-    TradingPercent,
 )
 from src.strategy.strategies.helpers.custom_indicator import (
     CustomIndicator,
@@ -118,9 +116,7 @@ class TradingStrategy:
         self,
         market_data: MarketData,
         check_index: int = -1,
-        trading_percent: Optional[TradingPercent] = None,
     ) -> TradingAnalyzeData | None:
-
         # 기술적 지표 계산
         rsi = self.indicator.calculate_rsi(market_data.close, self.params.rsi_period)
         macd, macdsignal, _ = self.indicator.calculate_macd(
@@ -205,7 +201,6 @@ class TradingStrategy:
             return TradingAnalyzeData(
                 signal=TradingSignal.BUY,
                 reason=reason,
-                trading_percent=trading_percent,
             )
 
         if satisfied_sell_conditions and len(satisfied_sell_conditions) >= 3:
@@ -216,13 +211,11 @@ class TradingStrategy:
             return TradingAnalyzeData(
                 signal=TradingSignal.SELL,
                 reason=reason,
-                trading_percent=trading_percent,
             )
 
         return TradingAnalyzeData(
             signal=TradingSignal.HOLD,
-            reason=None,
-            trading_percent=trading_percent,
+            reason=f"Unmet",
         )
 
 
@@ -326,15 +319,13 @@ class RealTimeProfitableStrategy(BaseStrategy):
 
     def analyze_market(
         self,
-        current_index: Optional[int] = None,
-        trading_percent: Optional[TradingPercent] = None,
         entry_position: Optional[EntryPosition] = None,
     ) -> TradingAnalyzeData | None:
-        super().analyze_market(current_index, trading_percent, entry_position)
+        super().analyze_market(entry_position)
 
+        # 전략 분석
         trading_analyze_data = self.trading_strategy.analyze(
-            self.market_data,
-            trading_percent=self.trading_percent,
+            market_data=self.market_data,
         )
 
         # 손절/익절 체크
@@ -345,11 +336,9 @@ class RealTimeProfitableStrategy(BaseStrategy):
                 market_data=self.market_data,
             )
             if risk_position.selling:
-                self.trading_percent.sell_percent = risk_position.price
                 return TradingAnalyzeData(
                     signal=TradingSignal.SELL,
                     reason=risk_position.reason,
-                    trading_percent=self.trading_percent,
                 )
 
         return trading_analyze_data
