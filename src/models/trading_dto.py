@@ -10,7 +10,7 @@ class TradingDto(BaseModel):
     decision: str | None = None  # 거래 결정 (매수/매도 등)
     reason: str | None = None  # 결정 이유
     trading_volume: float | None = None  # 거래 수량
-    trading_unit: float | None = None  # 거래 단가
+    trading_unit_price: float | None = None  # 거래 단가
     trading_price: float | None = None  # 거래 금액
     total_tokens: int | None = None  # 총 토큰
     prompt_tokens: int | None = None  # 프롬프트 토큰

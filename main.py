@@ -1,11 +1,18 @@
-from dotenv import load_dotenv
+import pytz
 
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
+from datetime import datetime
 
 from src.routes.v1 import (
     health as health_v1,
+    schedule as schedule_v1,
     strategy as strategy_v1,
     trade as trade_v1,
 )
@@ -19,6 +26,17 @@ from src.utils.logging import Logging
 
 project_name = "Kestrel"
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 스타트업 시 실행될 코드
+    schedule_v1.init_scheduler()
+    schedule_v1.start_scheduler()
+    yield
+    # 종료 시 실행될 코드
+    schedule_v1.shutdown_scheduler()
+
+
 # 로깅 초기화
 Logging.init()
 
@@ -26,7 +44,7 @@ Logging.init()
 load_dotenv()
 
 # FastAPI 애플리케이션 인스턴스 생성
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # CORS 미들웨어 설정 - 크로스 오리진 리소스 공유 허용
 app.add_middleware(
@@ -56,6 +74,11 @@ app.include_router(
     tags=["health_v1"],
 )
 app.include_router(
+    schedule_v1.router,
+    prefix="/api/v1",
+    tags=["schedule_v1"],
+)
+app.include_router(
     strategy_v1.router,
     prefix="/api/v1",
     tags=["strategy_v1"],
@@ -73,6 +96,9 @@ app.include_router(
         Depends(get_trade_service),
     ],
 )
+
+# 스케줄러 인스턴스 생성
+scheduler = BackgroundScheduler(timezone=pytz.UTC)
 
 # LangSmith Enabled
 Logging.langSmith(project_name=project_name)

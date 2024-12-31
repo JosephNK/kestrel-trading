@@ -2,6 +2,7 @@ from fastapi import status, APIRouter, Depends
 from src.databases.database import get_db
 from src.models.backtesting_dto import BackTestingDto
 from src.models.exception.http_json_exception import HttpJsonException
+from src.models.params.strategy_params import StrategyParams
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_signal_dto import TradingSignalDto
 from src.models.types.types import ExchangeProvider, StrategyType
@@ -9,6 +10,7 @@ from src.routes.dependencies.services import (
     get_backtesting_service,
     get_exchange_service,
 )
+
 from src.services.backtesting_service import BacktestingService
 from src.services.exchange_service import ExchangeService
 from src.utils.logging import Logging
@@ -24,10 +26,8 @@ router = APIRouter()
     response_model=BaseResponse[TradingSignalDto],
 )
 async def strategy(
+    params: StrategyParams = Depends(),
     exchange_service: ExchangeService = Depends(get_exchange_service),
-    exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
-    ticker: str = "KRW-BTC",
-    strategy_type: StrategyType = StrategyType.RSI,
 ):
     """
     트레이딩 전략 사용하여 매매 신호 생성
@@ -40,10 +40,11 @@ async def strategy(
     """
 
     try:
-        exchange_service.provider = exchange_provider
+        exchange_service.provider = params.exchange_provider
         return exchange_service.get_trading_signal_with_strategy(
-            ticker=ticker,
-            strategy_type=strategy_type,
+            ticker=params.ticker,
+            strategy_type=params.strategy_type,
+            candle_interval=params.candle_interval,
         )
     except HttpJsonException as e:
         raise e
@@ -60,19 +61,16 @@ async def strategy(
     response_model=BaseResponse[BackTestingDto],
 )
 async def strategy_backtesting(
+    params: StrategyParams = Depends(),
     backtesting_service: BacktestingService = Depends(get_backtesting_service),
-    exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
-    ticker: str = "KRW-BTC",
-    strategy_type: StrategyType = StrategyType.RSI,
-    candle_interval: str = "day",
 ):
     try:
-        backtesting_service.provider = exchange_provider
+        backtesting_service.provider = params.exchange_provider
         return backtesting_service.run_testing(
-            ticker=ticker,
-            strategy_type=strategy_type,
+            ticker=params.ticker,
+            strategy_type=params.strategy_type,
             candle_count=200,
-            candle_interval=candle_interval,
+            candle_interval=params.candle_interval,
         )
     except HttpJsonException as e:
         raise e

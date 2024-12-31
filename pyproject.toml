@@ -98,6 +98,8 @@ backtrader = "^1.9.78.123"
 ta-lib = "^0.5.2"
 psycopg2 = "^2.9.10"
 colorama = "^0.4.6"
+apscheduler = "^3.11.0"
+pytz = "^2024.2"
 
 [build-system]
 requires = ["poetry-core"]
