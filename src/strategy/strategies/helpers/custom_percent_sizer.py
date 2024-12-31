@@ -1,15 +1,17 @@
 import backtrader as bt
 
-
-class StrategyBasePercent:
-    buy_percent = 10  # 매수시 사용할 퍼센트
-    sell_percent = 20  # 매도시 사용할 퍼센트
+from src.strategy.strategies.datas.data import TradingPercent
 
 
 class CustomPercentSizer(bt.Sizer):
+    percent = TradingPercent(
+        buy_percent=10,
+        sell_percent=20,
+    )
+
     params = (
-        ("buy_percent", StrategyBasePercent.buy_percent),  # 매수시 사용할 퍼센트
-        ("sell_percent", StrategyBasePercent.sell_percent),  # 매도시 사용할 퍼센트
+        ("buy_percent", percent.buy_percent),  # 매수시 사용할 퍼센트
+        ("sell_percent", percent.sell_percent),  # 매도시 사용할 퍼센트
     )
 
     def _getsizing(self, comminfo, cash, data, isbuy):

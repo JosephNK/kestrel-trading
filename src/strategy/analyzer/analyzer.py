@@ -114,7 +114,8 @@ class BackTestingAnalyzer:
         transaction_dtos = self.get_transactions(transactions)
 
         # 결과 그래프 출력
-        # self.cerebro.plot(style="candle", volume=True)
+        self.cerebro.plot(style="candle", volume=True)
+
         file_path = CandleGraphChart.save_fig(
             transactions,
             df=self.df,

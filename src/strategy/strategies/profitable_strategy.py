@@ -6,7 +6,15 @@ import numpy as np
 import talib
 
 from src.models.types.types import TradingSignal
-from src.strategy.strategies.helpers.custom_percent_sizer import StrategyBasePercent
+from src.strategy.strategies.datas.data import (
+    EntryPosition,
+    MarketData,
+    RiskParams,
+    RiskPosition,
+    TradingAnalyzeData,
+    TradingPercent,
+)
+from src.strategy.strategies.risk.risk_manager import RiskManager
 
 """
 Profitable Strategy 조건
@@ -42,23 +50,8 @@ class TradingParameters:
     stoch_overbought: int = 80  # 과매수 기준값
 
     # 손절/익절 파라미터
-    stop_loss_pct: float = 2.0  # 진입가 기준 손절 비율 (%)
-    take_profit_pct: float = 4.0  # 진입가 기준 익절 비율 (%)
-    trailing_stop_pct: float = 1.5  # 최고가 대비 하락 시 청산 비율 (%)
-
-
-@dataclass
-class MarketData:
-    close: np.ndarray
-    high: np.ndarray
-    low: np.ndarray
-
-
-@dataclass
-class TradingAnalyzeData:
-    signal: TradingSignal
-    reason: str
-    current_price: float
+    stop_loss_pct: float = 3.0  # 진입가 기준 손절 비율 (%)
+    take_profit_pct: float = 5.0  # 진입가 기준 익절 비율 (%)
 
 
 # 기술적 지표 계산을 위한 프로토콜
@@ -116,7 +109,11 @@ class TALibIndicator(TechnicalIndicator):
 
 # 전략 분석을 위한 프로토콜
 class StrategyAnalyze(Protocol):
-    def analyze(self, market_data: MarketData) -> Tuple[List[str], List[str]]: ...
+    def analyze(
+        self,
+        market_data: MarketData,
+        trading_percent: TradingPercent,
+    ) -> TradingAnalyzeData | None: ...
 
 
 class TradingStrategy(StrategyAnalyze):
@@ -126,9 +123,12 @@ class TradingStrategy(StrategyAnalyze):
         self.macd_prev = None
         self.macdsignal_prev = None
 
-    def analyze(self, market_data: MarketData) -> TradingAnalyzeData | None:
-        check_index = -1  # -1 인덱스는 배열의 마지막 요소
-        current_price = market_data.close[check_index]  # 종가 데이터
+    def analyze(
+        self,
+        market_data: MarketData,
+        trading_percent: Optional[TradingPercent] = None,
+    ) -> TradingAnalyzeData | None:
+        check_index = -1  # 직전 봉의 데이터 인덱스
 
         # 기술적 지표 계산
         rsi = self.indicator.calculate_rsi(market_data.close, self.params.rsi_period)
@@ -223,8 +223,8 @@ class TradingStrategy(StrategyAnalyze):
             )
             return TradingAnalyzeData(
                 signal=TradingSignal.BUY,
-                reasons=reason,
-                current_price=current_price,
+                reason=reason,
+                trading_percent=trading_percent,
             )
 
         if satisfied_sell_conditions and len(satisfied_sell_conditions) >= 3:
@@ -235,13 +235,13 @@ class TradingStrategy(StrategyAnalyze):
             return TradingAnalyzeData(
                 signal=TradingSignal.SELL,
                 reason=reason,
-                current_price=current_price,
+                trading_percent=trading_percent,
             )
 
         return TradingAnalyzeData(
             signal=TradingSignal.HOLD,
             reason=None,
-            current_price=current_price,
+            trading_percent=trading_percent,
         )
 
 
@@ -264,7 +264,10 @@ class BackTestingProfitableStrategy(bt.Strategy):
             low=np.array(self.data_low.get(size=50)),
         )
 
-        trading_analyze_data = self.trading_strategy.analyze(market_data)
+        trading_analyze_data = self.trading_strategy.analyze(
+            market_data,
+            trading_percent=None,
+        )
 
         if trading_analyze_data is None:
             return
@@ -272,11 +275,39 @@ class BackTestingProfitableStrategy(bt.Strategy):
         signal = trading_analyze_data.signal
         reason = trading_analyze_data.reason
 
+        # 포지션이 없고 매수 신호가 발생하면 매수
         if not self.position and signal == TradingSignal.BUY:
-            self.order = self.buy()
+            self.order = self.buy(
+                exectype=bt.Order.Market,
+            )
             self.log(reason)
-        elif self.position and signal == TradingSignal.SELL:
-            self.order = self.sell()
+
+        # 손절/익절 체크
+        if self.position:
+            risk_manager = RiskManager(
+                risk_params=RiskParams(
+                    stop_loss_pct=self.trading_strategy.params.stop_loss_pct,
+                    take_profit_pct=self.trading_strategy.params.take_profit_pct,
+                )
+            )
+            risk_position = risk_manager.check_exit_conditions(
+                current_position=EntryPosition(
+                    entry_price=self.position.price,
+                ),
+                market_data=market_data,
+            )
+            if risk_position.selling:
+                self.order = self.sell(
+                    exectype=bt.Order.Market,
+                )
+                self.log(risk_position.reason)
+                return
+
+        # 포지션이 있고 매도 신호가 발생하면 매도
+        if self.position and signal == TradingSignal.SELL:
+            self.order = self.sell(
+                exectype=bt.Order.Market,
+            )
             self.log(reason)
 
     def notify_order(self, order):
@@ -286,11 +317,11 @@ class BackTestingProfitableStrategy(bt.Strategy):
         if order.status in [order.Completed]:
             if order.isbuy():
                 self.log(
-                    f"매수 체결: 가격: {order.executed.price}, 수량: {order.executed.size}"
+                    f"매수 체결: 가격 {order.executed.price:.2f}, 수량 {order.executed.size}"
                 )
             else:
                 self.log(
-                    f"매도 체결: 가격: {order.executed.price}, 수량: {order.executed.size}"
+                    f"매도 체결: 가격 {order.executed.price:.2f}, 수량 {order.executed.size}"
                 )
 
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
@@ -325,18 +356,22 @@ class RealTimeProfitableStrategy:
 
     def analyze_market(
         self,
-        current_index: int = None,
-        buy_percent: float = StrategyBasePercent.buy_percent,
-        sell_percent: float = StrategyBasePercent.sell_percent,
+        current_index: Optional[int] = None,
+        trading_percent: Optional[TradingPercent] = None,
+        entry_position: Optional[EntryPosition] = None,
     ) -> TradingAnalyzeData | None:
         """
         시장 데이터 분석 및 매매 신호 생성
 
         Args:
             current_index: 현재 분석할 시점의 인덱스
+            trading_percent: 매매 비율 설정
         """
         if current_index is None:
             current_index = len(self.df) - 1
+
+        if trading_percent is None:
+            trading_percent = TradingPercent()
 
         # 최근 50개 데이터만 슬라이싱
         start_idx = max(0, current_index - self.window_size + 1)
@@ -348,4 +383,29 @@ class RealTimeProfitableStrategy:
             low=self.df["low"].values[start_idx:end_idx],
         )
 
-        return self.trading_strategy.analyze(market_data)
+        trading_analyze_data = self.trading_strategy.analyze(
+            market_data,
+            trading_percent=trading_percent,
+        )
+
+        # 손절/익절 체크
+        if entry_position:
+            risk_manager = RiskManager(
+                risk_params=RiskParams(
+                    stop_loss_pct=self.trading_strategy.params.stop_loss_pct,
+                    take_profit_pct=self.trading_strategy.params.take_profit_pct,
+                )
+            )
+            risk_position = risk_manager.check_exit_conditions(
+                current_position=entry_position,
+                market_data=market_data,
+            )
+            if risk_position.selling:
+                trading_percent.sell_percent = risk_position.price
+                return TradingAnalyzeData(
+                    signal=TradingSignal.SELL,
+                    reason=risk_position.reason,
+                    trading_percent=trading_percent,
+                )
+
+        return trading_analyze_data
