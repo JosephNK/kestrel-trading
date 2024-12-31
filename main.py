@@ -27,6 +27,13 @@ from src.utils.logging import Logging
 project_name = "Kestrel"
 
 
+# 로깅 초기화
+Logging.init()
+
+# .env 파일에서 환경변수 로드
+load_dotenv()
+
+
 # 스케줄러 인스턴스 생성
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,12 +44,6 @@ async def lifespan(app: FastAPI):
     # 종료 시 실행될 코드
     schedule_v1.shutdown_scheduler()
 
-
-# 로깅 초기화
-Logging.init()
-
-# .env 파일에서 환경변수 로드
-load_dotenv()
 
 # FastAPI 애플리케이션 인스턴스 생성
 app = FastAPI(lifespan=lifespan)
