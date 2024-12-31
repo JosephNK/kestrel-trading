@@ -1,16 +1,15 @@
+import pytz
+
 from functools import wraps
-from fastapi import Depends, status, APIRouter
-from contextlib import asynccontextmanager
+from fastapi import status, APIRouter
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from datetime import datetime
-from typing import Optional, Dict, Any, Literal
-from pydantic import BaseModel
-import pytz
+from typing import Callable
 from requests import Session
 
-from src.databases.database import get_db
+from src.databases.database import get_scheduler_db
 from src.databases.trade_history_database import TradeHistoryDatabase
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.params.cron_schedule_params import CronScheduleParams
@@ -24,12 +23,11 @@ from src.services.exchange_service import ExchangeService
 from src.services.trade_service import TradeService
 from src.utils.logging import Logging
 
+# Router 생성
+router = APIRouter()
 
 # 스케줄러 인스턴스 생성
 scheduler = BackgroundScheduler(timezone=pytz.UTC)
-
-# Router 생성
-router = APIRouter()
 
 
 def log_job_execution(func):
@@ -54,8 +52,35 @@ def log_job_execution(func):
     return wrapper
 
 
+def inject_dependencies(func: Callable):
+    """스케줄 작업을 위한 의존성 주입 데코레이터"""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        with get_scheduler_db() as db:
+            trade_service = get_trade_service()
+            exchange_service = get_exchange_service()
+
+            return func(
+                *args,
+                db=db,
+                trade_service=trade_service,
+                exchange_service=exchange_service,
+                **kwargs,
+            )
+
+    return wrapper
+
+
 @log_job_execution
-def periodic_task(job_id=None, job_name=None):
+@inject_dependencies
+def periodic_task(
+    job_id: str = None,
+    job_name: str = None,
+    db: Session = None,
+    trade_service: TradeService = None,
+    exchange_service: ExchangeService = None,
+):
     Logging.info(
         f"Job executed - ID: {job_id}, Name: {job_name}, Type: Periodic Task, Time: {datetime.now()}"
     )
@@ -64,7 +89,14 @@ def periodic_task(job_id=None, job_name=None):
 
 
 @log_job_execution
-def daily_task(job_id=None, job_name=None):
+@inject_dependencies
+def daily_task(
+    job_id: str = None,
+    job_name: str = None,
+    db: Session = None,
+    trade_service: TradeService = None,
+    exchange_service: ExchangeService = None,
+):
     Logging.info(
         f"Job executed - ID: {job_id}, Name: {job_name}, Type: Daily Task, Time: {datetime.now()}"
     )
@@ -113,19 +145,19 @@ def init_scheduler():
 
 def start_scheduler():
     """스케줄러 시작"""
-    print("Starting scheduler")
+    Logging.info("Starting scheduler")
     if not scheduler.running:
         scheduler.start()
 
 
 def shutdown_scheduler():
     """스케줄러 종료"""
-    print("Shutting down scheduler")
+    Logging.info("Shutting down scheduler")
     if scheduler.running:
         scheduler.shutdown()
 
 
-# 스케줄 추가 API
+# 스케줄 추가 API (Interval)
 @router.post("/schedule/interval")
 def add_interval_schedule(params: IntervalScheduleParams):
     if params.func_name not in job_functions:
@@ -168,6 +200,7 @@ def add_interval_schedule(params: IntervalScheduleParams):
         )
 
 
+# 스케줄 추가 API (Cron)
 @router.post("/schedule/cron")
 def add_cron_schedule(params: CronScheduleParams):
     if params.func_name not in job_functions:

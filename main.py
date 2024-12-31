@@ -27,6 +27,7 @@ from src.utils.logging import Logging
 project_name = "Kestrel"
 
 
+# 스케줄러 인스턴스 생성
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 스타트업 시 실행될 코드
@@ -96,9 +97,6 @@ app.include_router(
         Depends(get_trade_service),
     ],
 )
-
-# 스케줄러 인스턴스 생성
-scheduler = BackgroundScheduler(timezone=pytz.UTC)
 
 # LangSmith Enabled
 Logging.langSmith(project_name=project_name)
