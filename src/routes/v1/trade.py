@@ -27,7 +27,7 @@ async def trade_strategy(
     exchange_service: ExchangeService = Depends(get_exchange_service),
     exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     ticker: str = "KRW-BTC",
-    strategy_type: StrategyType = StrategyType.PROFITABLE,
+    strategy_type: StrategyType = StrategyType.RSI,
     buy_percent: float = 30,
     sell_percent: float = 50,
 ):
@@ -88,7 +88,7 @@ async def trade_agent(
     exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     db: Session = Depends(get_db),
     ticker: str = "KRW-BTC",
-    strategy_type: StrategyType = StrategyType.PROFITABLE,
+    strategy_type: StrategyType = StrategyType.RSI,
     buy_percent: float = 30,
     sell_percent: float = 50,
 ):
@@ -113,13 +113,13 @@ async def trade_agent(
         # 매매 실행
         trader_service.provider = exchange_provider
         trading_response = trader_service.run_trade(
-            dto=trading_signal_dto,
-            # dto=TradingSignalDto(
-            #     ticker=ticker,
-            #     decision="HOLD",
-            #     reason="임시 테스트 중입니다. (실거래를 원하시면 decision 값을 BUY 또는 SELL로 변경해주세요.)",
-            #     connect_live=False,
-            # ),
+            # dto=trading_signal_dto,
+            dto=TradingSignalDto(
+                ticker=ticker,
+                decision="HOLD",
+                reason="임시 테스트 중입니다. (실거래를 원하시면 decision 값을 BUY 또는 SELL로 변경해주세요.)",
+                connect_live=False,
+            ),
             buy_percent=buy_percent,
             sell_percent=sell_percent,
         )

@@ -11,10 +11,14 @@ from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_signal_dto import TradingSignalDto
 from src.models.types.types import StrategyType, TradingSignal
 from src.services.base.base_service import BaseService
+from src.strategy.strategies.base.base_strategy import BaseStrategy
 from src.strategy.strategies.profitable_strategy import (
     RealTimeProfitableStrategy,
     TradingAnalyzeData,
 )
+from src.strategy.strategies.qulla_maggie_strategy import RealTimeQullaMaggieStrategy
+from src.strategy.strategies.rsi_strategy import RealTimeRSIStrategy
+from src.utils.indicator import Indicator
 from src.utils.logging import Logging
 
 
@@ -22,18 +26,30 @@ class ExchangeService(BaseService):
     def __init__(self):
         super().__init__()
 
-    # Profitable 전략에 따른 Trading Signal 생성
-    def __get_profitable_strategy_trading_signal(
-        self, df: pd.DataFrame
+    # 전략에 따른 Trading Signal 생성
+    def __get_strategy_trading_signal(
+        self,
+        df: pd.DataFrame,
+        strategy_type: StrategyType = StrategyType.PROFITABLE,
     ) -> TradingAnalyzeData | None:
-        strategy = RealTimeProfitableStrategy(df=df)
+        strategy: BaseStrategy = None
+
+        if strategy_type == StrategyType.RSI:
+            strategy = RealTimeRSIStrategy(df=df)
+
+        if strategy_type == StrategyType.PROFITABLE:
+            strategy = RealTimeProfitableStrategy(df=df)
+
+        if strategy_type == StrategyType.QULLAMAGGIE:
+            strategy = RealTimeQullaMaggieStrategy(df=df)
+
         return strategy.analyze_market()
 
     # 전략에 따른 Trading Signal 생성
     def get_trading_signal_with_strategy(
         self,
         ticker: str = "KRW-BTC",
-        strategy_type: StrategyType = StrategyType.PROFITABLE,
+        strategy_type: StrategyType = StrategyType.RSI,
         candle_count: int = 200,
         candle_interval: str = "day",
     ) -> BaseResponse[TradingSignalDto]:
@@ -47,16 +63,13 @@ class ExchangeService(BaseService):
                 count=candle_count, interval=candle_interval
             )
 
-            trading_signal: TradingSignal | None = None
-            reason: str | None = None
-
-            if strategy_type == StrategyType.PROFITABLE:
-                # Profitable 전략
-                trading_analyze_data = self.__get_profitable_strategy_trading_signal(
-                    df=candle_df
-                )
-                trading_signal = trading_analyze_data.signal
-                reason = trading_analyze_data.reason
+            # 전략
+            trading_analyze_data = self.__get_strategy_trading_signal(
+                df=candle_df,
+                strategy_type=strategy_type,
+            )
+            trading_signal = trading_analyze_data.signal
+            reason = trading_analyze_data.reason
 
             if trading_signal is None:
                 raise HttpJsonException(
@@ -90,7 +103,7 @@ class ExchangeService(BaseService):
     def get_trading_signal_with_agent(
         self,
         ticker: str = "KRW-BTC",
-        strategy_type: StrategyType = StrategyType.PROFITABLE,
+        strategy_type: StrategyType = StrategyType.RSI,
         candle_count: int = 200,
         candle_interval: str = "day",
     ) -> Tuple[BaseResponse[TradingSignalDto], dict]:
@@ -100,20 +113,18 @@ class ExchangeService(BaseService):
             self.exchange.ticker = ticker
 
             # 데이터 조회
+            investment_status = self.exchange.get_current_investment_status()
+            orderbook_status = self.exchange.get_orderbook_status()
             candle_df = self.exchange.get_candle(
                 count=candle_count, interval=candle_interval
             )
-            investment_status = self.exchange.get_current_investment_status()
-            orderbook_status = self.exchange.get_orderbook_status()
 
-            trading_signal: TradingSignal | None = None
-
-            if strategy_type == StrategyType.PROFITABLE:
-                # Profitable 전략
-                trading_analyze_data = self.__get_profitable_strategy_trading_signal(
-                    df=candle_df
-                )
-                trading_signal = trading_analyze_data.signal
+            # 전략
+            trading_analyze_data = self.__get_strategy_trading_signal(
+                df=candle_df,
+                strategy_type=strategy_type,
+            )
+            trading_signal = trading_analyze_data.signal
 
             if trading_signal is None:
                 raise HttpJsonException(
@@ -124,8 +135,8 @@ class ExchangeService(BaseService):
             # 데이터 통합 및 JSON 형식으로 변환
             analysis_data = {
                 "Current Investment Status": investment_status,
-                "OHLCV With Indicators": candle_df.to_json(),
                 "Orderbook Status": orderbook_status,
+                "OHLCV With Indicators": candle_df.to_json(),
                 "Result By Trading Strategy": trading_signal.value,
             }
 
@@ -133,7 +144,6 @@ class ExchangeService(BaseService):
             ai_agent = KestrelAiAgent()
             answer = ai_agent.invoke(
                 analysis_data=analysis_data,
-                strategy_type=strategy_type,
             )
 
             return (
@@ -159,15 +169,3 @@ class ExchangeService(BaseService):
             raise HttpJsonException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
             )
-
-    def get_candle_df(
-        self,
-        ticker: str = "KRW-BTC",
-        candle_count: int = 200,
-        candle_interval: str = "day",
-    ) -> pd.DataFrame:
-        self.exchange.ticker = ticker
-        candle_df = self.exchange.get_candle(
-            count=candle_count, interval=candle_interval
-        )
-        return candle_df

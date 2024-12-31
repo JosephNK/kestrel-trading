@@ -21,7 +21,7 @@ class BacktestingService(BaseService):
     def run_testing(
         self,
         ticker: str = "KRW-BTC",
-        strategy_type: StrategyType = StrategyType.PROFITABLE,
+        strategy_type: StrategyType = StrategyType.RSI,
         candle_count: int = 200,
         candle_interval: str = "day",
     ) -> BaseResponse[BackTestingDto]:
@@ -38,8 +38,22 @@ class BacktestingService(BaseService):
 
             item: BackTestingDto = None
 
+            if strategy_type == StrategyType.RSI:
+                item = backtesting.run_rsi_strategy(
+                    ticker=ticker,
+                    df=candle_df,
+                )
+                item.exchange_provider = self.exchange.get_provider()
+
             if strategy_type == StrategyType.PROFITABLE:
                 item = backtesting.run_profitable_strategy(
+                    ticker=ticker,
+                    df=candle_df,
+                )
+                item.exchange_provider = self.exchange.get_provider()
+
+            if strategy_type == StrategyType.QULLAMAGGIE:
+                item = backtesting.run_qulla_maggie_strategy(
                     ticker=ticker,
                     df=candle_df,
                 )

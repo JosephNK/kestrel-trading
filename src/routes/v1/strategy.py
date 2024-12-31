@@ -27,7 +27,7 @@ async def strategy(
     exchange_service: ExchangeService = Depends(get_exchange_service),
     exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     ticker: str = "KRW-BTC",
-    strategy_type: StrategyType = StrategyType.PROFITABLE,
+    strategy_type: StrategyType = StrategyType.RSI,
 ):
     """
     트레이딩 전략 사용하여 매매 신호 생성
@@ -63,7 +63,8 @@ async def strategy_backtesting(
     backtesting_service: BacktestingService = Depends(get_backtesting_service),
     exchange_provider: ExchangeProvider = ExchangeProvider.UPBIT,
     ticker: str = "KRW-BTC",
-    strategy_type: StrategyType = StrategyType.PROFITABLE,
+    strategy_type: StrategyType = StrategyType.RSI,
+    candle_interval: str = "day",
 ):
     try:
         backtesting_service.provider = exchange_provider
@@ -71,7 +72,7 @@ async def strategy_backtesting(
             ticker=ticker,
             strategy_type=strategy_type,
             candle_count=200,
-            candle_interval="day",
+            candle_interval=candle_interval,
         )
     except HttpJsonException as e:
         raise e

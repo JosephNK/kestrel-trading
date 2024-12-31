@@ -6,7 +6,9 @@ class ExchangeProvider(str, Enum):
 
 
 class StrategyType(str, Enum):
+    RSI = "RSI"
     PROFITABLE = "Profitable"
+    QULLAMAGGIE = "QullaMaggie"
 
 
 class TradingSignal(str, Enum):

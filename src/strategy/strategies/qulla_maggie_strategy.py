@@ -20,41 +20,20 @@ from src.strategy.strategies.helpers.custom_indicator import (
 )
 
 """
-Profitable Strategy 조건
+Qulla maggie Strategy 조건
 
-- 매수 조건
-1. 스토캐스틱 20 수치 미만
-2. MACD 상향 교차
-3. RSI 50 수치 이상
-
-- 매도 조건
-1. 스토캐스틱 80 수치 초과
-2. MACD 하향 교차
-3. RSI 50 수치 미만
 """
 
 
 @dataclass
 class TradingParameters:
-    # RSI 설정
-    rsi_period: int = 14  # RSI 계산 기간 (일반적으로 14일 사용)
-    rsi_threshold: int = 50  # RSI 매매 신호 기준값
+    # EMA 설정
+    ema_fast_period: int = 10
+    ema_mid_period: int = 20
+    ema_slow_period: int = 50
 
-    # MACD 설정
-    macd_fastperiod: int = 12  # 단기 이동평균 기간 (기본값 12)
-    macd_slowperiod: int = 26  # 장기 이동평균 기간 (기본값 26)
-    macd_signalperiod: int = 9  # MACD 시그널 라인 기간 (기본값 9)
-
-    # 스토캐스틱 설정
-    stoch_fastk: int = 12  # Fast %K 기간
-    stoch_slowk: int = 3  # Slow %K 기간
-    stoch_slowd: int = 3  # Slow %D 기간
-    stoch_oversold: int = 20  # 과매도 기준값
-    stoch_overbought: int = 80  # 과매수 기준값
-
-    # 손절/익절 파라미터
-    stop_loss_pct: float = 3.0  # 진입가 기준 손절 비율 (%)
-    take_profit_pct: float = 5.0  # 진입가 기준 익절 비율 (%)
+    # 교차 판단 설정
+    cross_threshold: float = 0.1  # EMA 간 교차 판단 임계값 (%)
 
 
 class TradingRisk:
@@ -68,7 +47,7 @@ class TradingRisk:
         current_position: Optional[EntryPosition],
         check_index: int = -1,
     ) -> RiskPosition:
-        """현물 매도 조건 체크 (손절/익절)"""
+        """익절 조건 확인: 가격이 10일선 아래로 진입"""
 
         if not current_position:
             return RiskPosition(
@@ -80,25 +59,17 @@ class TradingRisk:
         current_price = market_data.close[check_index]
         entry_price = current_position.entry_price
 
-        # 손절 체크
-        if self.params.stop_loss_pct != 0.0:
-            stop_loss_price = entry_price * (1 - self.params.stop_loss_pct / 100)
-            if current_price <= stop_loss_price:
-                return RiskPosition(
-                    selling=True,
-                    reason=f"손절 매도: 가격 {current_price:.2f}, 진입가 {entry_price:.2f} 대비 {self.params.stop_loss_pct}% 하락",
-                    price=stop_loss_price,
-                )
+        ema_fast = self.indicator.calculate_ema(
+            market_data.close, self.params.ema_fast_period
+        )[check_index]
+        print("current_price", current_price, ema_fast)
 
-        # 익절 체크
-        if self.params.take_profit_pct != 0.0:
-            take_profit_price = entry_price * (1 + self.params.take_profit_pct / 100)
-            if current_price >= take_profit_price:
-                return RiskPosition(
-                    selling=True,
-                    reason=f"익절 매도: 가격 {current_price:.2f}, 진입가 {entry_price:.2f} 대비 {self.params.take_profit_pct}% 상승",
-                    price=take_profit_price,
-                )
+        if current_price < ema_fast:
+            return RiskPosition(
+                selling=True,
+                reason=f"익절 매도: 가격 {current_price:.2f}이 10일선({ema_fast:.2f}) 아래로 진입",
+                price=0.0,
+            )
 
         return RiskPosition(
             selling=False,
@@ -111,123 +82,99 @@ class TradingStrategy:
     def __init__(self, params: TradingParameters, indicator: TechnicalIndicator):
         self.params = params
         self.indicator = indicator
-        self.macd_prev = None
-        self.macdsignal_prev = None
+
+    def check_ema_cross(self, ema1: np.ndarray, ema2: np.ndarray, index: int) -> bool:
+        """두 EMA가 교차(겹침) 상태인지 확인"""
+        diff_percent = abs(
+            (ema1[index] - ema2[index]) / ema1[index] * 100
+        )  # 두 EMA의 차이를 백분율로 계산
+        return diff_percent <= self.params.cross_threshold
+
+    def check_ema_conditions(
+        self,
+        ema_fast: np.ndarray,
+        ema_mid: np.ndarray,
+        ema_slow: np.ndarray,
+        index: int,
+    ) -> Tuple[bool, str]:
+        """
+        EMA 조건 확인:
+        1. 10일선과 20일선이 겹침
+        2. 50일선은 겹치지 않음
+        """
+        # 10일선과 20일선의 교차 여부
+        is_fast_mid_cross = self.check_ema_cross(ema_fast, ema_mid, index)
+
+        # 10일선과 50일선, 20일선과 50일선의 교차 여부 확인
+        is_fast_slow_cross = self.check_ema_cross(ema_fast, ema_slow, index)
+        is_mid_slow_cross = self.check_ema_cross(ema_mid, ema_slow, index)
+
+        # 50일선이 겹치지 않아야 함
+        is_slow_separate = not (is_fast_slow_cross or is_mid_slow_cross)
+
+        # 모든 조건 충족 여부
+        conditions_met = is_fast_mid_cross and is_slow_separate
+
+        # 상세 이유 메시지 생성
+        reason_parts = []
+        if is_fast_mid_cross:
+            reason_parts.append(
+                f"10일선({ema_fast[index]:.2f})과 20일선({ema_mid[index]:.2f})이 겹침"
+            )
+        else:
+            reason_parts.append(
+                f"10일선({ema_fast[index]:.2f})과 20일선({ema_mid[index]:.2f})이 겹치지 않음"
+            )
+
+        if is_slow_separate:
+            reason_parts.append(
+                f"50일선({ema_slow[index]:.2f})이 다른 선들과 충분히 분리됨"
+            )
+        else:
+            reason_parts.append(f"50일선({ema_slow[index]:.2f})이 다른 선들과 겹침")
+
+        return conditions_met, " / ".join(reason_parts)
 
     def analyze(
         self,
         market_data: MarketData,
         check_index: int = -1,
         trading_percent: Optional[TradingPercent] = None,
-    ) -> TradingAnalyzeData | None:
-
-        # 기술적 지표 계산
-        rsi = self.indicator.calculate_rsi(market_data.close, self.params.rsi_period)
-        macd, macdsignal, _ = self.indicator.calculate_macd(
-            market_data.close,
-            self.params.macd_fastperiod,
-            self.params.macd_slowperiod,
-            self.params.macd_signalperiod,
+    ) -> TradingAnalyzeData:
+        # EMA 계산
+        ema_fast = self.indicator.calculate_ema(
+            market_data.close, self.params.ema_fast_period
         )
-        slowk, slowd = self.indicator.calculate_stoch(
-            market_data.high,
-            market_data.low,
-            market_data.close,
-            self.params.stoch_fastk,
-            self.params.stoch_slowk,
-            self.params.stoch_slowd,
+        ema_mid = self.indicator.calculate_ema(
+            market_data.close, self.params.ema_mid_period
+        )
+        ema_slow = self.indicator.calculate_ema(
+            market_data.close, self.params.ema_slow_period
         )
 
-        # MACD 크로스 확인
-        macd_golden_cross = False
-        macd_dead_cross = False
+        # EMA 조건 검사
+        conditions_met, reason = self.check_ema_conditions(
+            ema_fast, ema_mid, ema_slow, check_index
+        )
 
-        if self.macd_prev is not None and self.macdsignal_prev is not None:
-            if (
-                self.macd_prev < self.macdsignal_prev
-                and macd[check_index] > macdsignal[check_index]
-            ):
-                macd_golden_cross = True
-            if (
-                self.macd_prev > self.macdsignal_prev
-                and macd[check_index] < macdsignal[check_index]
-            ):
-                macd_dead_cross = True
-
-        self.macd_prev = macd[check_index]
-        self.macdsignal_prev = macdsignal[check_index]
-
-        # 매수/매도 조건 검사
-        buy_conditions = [
-            (
-                slowk[check_index] < self.params.stoch_oversold,
-                f"Stoch K: {slowk[check_index]:.2f} < {self.params.stoch_oversold}",
-            ),
-            (
-                slowd[check_index] < self.params.stoch_oversold,
-                f"Stoch D: {slowd[check_index]:.2f} < {self.params.stoch_oversold}",
-            ),
-            (macd_golden_cross, "MACD 골든크로스"),
-            (
-                rsi[check_index] > self.params.rsi_threshold,
-                f"RSI: {rsi[check_index]:.2f} > {self.params.rsi_threshold}",
-            ),
-        ]
-
-        sell_conditions = [
-            (
-                slowk[check_index] > self.params.stoch_overbought,
-                f"Stoch K: {slowk[check_index]:.2f} > {self.params.stoch_overbought}",
-            ),
-            (
-                slowd[check_index] > self.params.stoch_overbought,
-                f"Stoch D: {slowd[check_index]:.2f} > {self.params.stoch_overbought}",
-            ),
-            (macd_dead_cross, "MACD 데드크로스"),
-            (
-                rsi[check_index] < self.params.rsi_threshold,
-                f"RSI: {rsi[check_index]:.2f} < {self.params.rsi_threshold}",
-            ),
-        ]
-
-        satisfied_buy_conditions = [
-            msg for condition, msg in buy_conditions if condition
-        ]
-        satisfied_sell_conditions = [
-            msg for condition, msg in sell_conditions if condition
-        ]
-
-        if satisfied_buy_conditions and len(satisfied_buy_conditions) >= 3:
-            reason = (
-                f"매수 신호 발생 (조건 {len(satisfied_buy_conditions)}개 충족): "
-                + ", ".join(satisfied_buy_conditions)
-            )
+        # 매수 신호 생성
+        if conditions_met:
             return TradingAnalyzeData(
                 signal=TradingSignal.BUY,
-                reason=reason,
+                reason=f"매수 신호 발생: {reason}",
                 trading_percent=trading_percent,
             )
 
-        if satisfied_sell_conditions and len(satisfied_sell_conditions) >= 3:
-            reason = (
-                f"매도 신호 발생 (조건 {len(satisfied_sell_conditions)}개 충족): "
-                + ", ".join(satisfied_sell_conditions)
-            )
-            return TradingAnalyzeData(
-                signal=TradingSignal.SELL,
-                reason=reason,
-                trading_percent=trading_percent,
-            )
-
+        # 매수 조건 불충족
         return TradingAnalyzeData(
             signal=TradingSignal.HOLD,
-            reason=None,
+            reason=reason,
             trading_percent=trading_percent,
         )
 
 
 # Backtrader에서 사용하는 전략 클래스
-class BackTestingProfitableStrategy(bt.Strategy):
+class BackTestingQullaMaggieStrategy(bt.Strategy):
     def __init__(self):
         self.trading_strategy = TradingStrategy(TradingParameters(), CustomIndicator())
         self.data_close = self.data.close
@@ -319,7 +266,7 @@ class BackTestingProfitableStrategy(bt.Strategy):
 
 
 # 실시간 전략 클래스
-class RealTimeProfitableStrategy(BaseStrategy):
+class RealTimeQullaMaggieStrategy(BaseStrategy):
     def __init__(self, df: pd.DataFrame):
         super().__init__(df)
         self.trading_strategy = TradingStrategy(TradingParameters(), CustomIndicator())

@@ -13,13 +13,6 @@ class MarketData:
 
 
 @dataclass
-class RiskParams:
-    # 손절/익절 파라미터
-    stop_loss_pct: float  # 진입가 기준 손절 비율 (%)
-    take_profit_pct: float  # 진입가 기준 익절 비율 (%)
-
-
-@dataclass
 class RiskPosition:
     selling: bool
     reason: str

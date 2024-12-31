@@ -34,7 +34,6 @@ class KestrelAiAgent:
     def invoke(
         self,
         analysis_data: str,
-        strategy_type: StrategyType = StrategyType.PROFITABLE,
     ) -> dict:
         """
         AI 모델에 데이터를 전달하고 매매 결정을 받아오는 함수
@@ -48,11 +47,6 @@ class KestrelAiAgent:
                 - reason: 결정에 대한 이유
         """
 
-        # 전략 메시지 설정
-        strategy_message: str = ""
-        if strategy_type is StrategyType.PROFITABLE:
-            strategy_message = "Profitable Strategy"
-
         # JsonOutputParser 설정
         json_parser = JsonOutputParser(pydantic_object=TradingDecision)
 
@@ -62,12 +56,12 @@ class KestrelAiAgent:
 
         Market Data:
         - Current Investment Status
-        - OHLCV With Indicators
         - Orderbook Status
-        - Trading Strategy is {strategy_message}
+        - OHLCV With Indicators
 
         TRADING RULES:
-        - Reflect the results of trading strategy as much as possible.
+        - Comprehensively analyze and evaluate the market data.
+        - Refer to the results of the trading strategy.
         """
 
         # 인간 프롬프트 템플릿 정의
@@ -90,7 +84,6 @@ class KestrelAiAgent:
 
         # 필요한 변수들을 딕셔너리로 전달
         variables = {
-            "strategy_message": strategy_message,
             "analysis_data": analysis_data,
             "format_instructions": format_instructions,
         }

@@ -32,13 +32,17 @@ class Indicator:
         # RSI 계산 (14일)
         df["rsi"] = talib.RSI(df["close"], timeperiod=14)
 
-        # 이동평균선 계산
-        df["sma_20"] = talib.SMA(df["close"], timeperiod=20)  # 20일 단순이동평균
-        df["ema_12"] = talib.EMA(df["close"], timeperiod=12)  # 12일 지수이동평균
+        # EMA 계산 (10일, 20일, 50일)
+        df["ema_10"] = talib.EMA(df["close"], timeperiod=10)
+        df["ema_20"] = talib.EMA(df["close"], timeperiod=20)
+        df["ema_50"] = talib.EMA(df["close"], timeperiod=50)
 
-        # MACD 계산
+        # MACD 계산 (12일, 26일, 9일)
         df["macd"], df["macd_signal"], df["macd_hist"] = talib.MACD(
-            df["close"], fastperiod=12, slowperiod=26, signalperiod=9
+            df["close"],
+            fastperiod=12,
+            slowperiod=26,
+            signalperiod=9,
         )
 
         # MACD 교차 계산 (골든크로스/데드크로스)
@@ -66,12 +70,5 @@ class Indicator:
             slowd_period=12,  # %D 기간
             slowd_matype=0,  # 단순이동평균 사용
         )
-
-        # # 결과 확인
-        # print(df[["macd", "macd_signal", "macd_cross"]].tail())
-
-        # # 교차 발생한 날짜만 확인
-        # cross_days = df[df["macd_cross"] != 0]
-        # print("\n교차 발생일:", cross_days[["macd", "macd_signal", "macd_cross"]])
 
         return df
