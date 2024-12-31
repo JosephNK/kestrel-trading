@@ -1,3 +1,4 @@
+import platform
 import pandas as pd
 import backtrader as bt
 
@@ -113,14 +114,17 @@ class BackTestingAnalyzer:
         # 거래 내역 출력
         transaction_dtos = self.get_transactions(transactions)
 
-        # 결과 그래프 출력
-        self.cerebro.plot(style="candle", volume=True)
-
-        file_path = CandleGraphChart.save_fig(
-            transactions,
-            df=self.df,
-            filename=save_filename,
-        )
+        file_path = None
+        if platform.system() == "Darwin":  # macOS
+            # 결과 그래프 출력
+            self.cerebro.plot(style="candle", volume=True)
+        else:
+            # 결과 그래프 저장
+            file_path = CandleGraphChart.save_fig(
+                transactions,
+                df=self.df,
+                filename=save_filename,
+            )
 
         # # pyfoliozer
         # pyfoliozer = strat.analyzers.getbyname("pyfolio")
