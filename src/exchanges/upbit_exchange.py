@@ -298,21 +298,42 @@ class UpbitExchange(BaseExchange):
         reason: str,
         buy_percent: float = 100,
     ) -> TradingDto:
+        market_price = pyupbit.get_orderbook(ticker=self.ticker)["orderbook_units"][0][
+            "ask_price"
+        ]  # 현재가
         balance = self.upbit.get_balance("KRW")  # 보유 원화
-        available_buy_amount = balance - (
+        available_buy_price = balance - (
             balance * self.fee
         )  # 수수료 제외 실제 매수 가능 금액
-        buy_amount = available_buy_amount * (buy_percent / 100)  # 매수 금액
+        buy_price = available_buy_price * (buy_percent / 100)  # 매수 금액
+        buy_amount = buy_price / market_price  # 매수 수량
         Logging.info(
             f"[BUY] "
             f"보유 원화: {balance:,.0f}원, "
-            f"수수료 제외 실제 매수 가능 금액: {available_buy_amount:,.0f}원, "
-            f"매수 금액: {buy_amount:,.0f}원"
+            f"현재가: {market_price:,.0f}원, "
+            f"수수료 제외 실제 매수 가능 금액: {available_buy_price:,.0f}원, "
+            f"매수 수량: {buy_amount:.8f}개,"
+            f"매수 금액: {buy_price:,.0f}원"
         )
-        if available_buy_amount > self.min_trade_amount:
+        if available_buy_price > self.min_trade_amount:
             buy_result = self.upbit.buy_market_order(
-                ticker=self.ticker, price=buy_amount
+                ticker=self.ticker, price=buy_price
             )
+
+            # buy_result
+            # {'uuid': '34148530-4e23-4b8d-adc7-e642143d25e1',
+            # 'side': 'bid',
+            # 'ord_type': 'price',
+            # 'price': '23238.04093262',
+            # 'state': 'wait',
+            # 'market': 'KRW-BTC',
+            # 'created_at': '2024-12-31T17:35:34+09:00',
+            # 'reserved_fee': '11.61902046631',
+            # 'remaining_fee': '11.61902046631',
+            # 'paid_fee': '0',
+            # 'locked': '23249.65995308631',
+            # 'executed_volume': '0',
+            # 'trades_count': 0}
 
             if buy_result is None:
                 raise ValueError(
@@ -330,7 +351,9 @@ class UpbitExchange(BaseExchange):
                 ticker=self.ticker,
                 decision=decision,
                 reason=reason,
-                trading_value=buy_amount,
+                trading_volume=buy_amount,
+                trading_unit=market_price,
+                trading_price=buy_price,
                 exchange_provider=self.get_provider(),
                 created_at=datetime.now(),
             )
@@ -381,7 +404,9 @@ class UpbitExchange(BaseExchange):
                 ticker=self.ticker,
                 decision=decision,
                 reason=reason,
-                trading_value=ask_price,
+                trading_volume=sell_amount,
+                trading_unit=market_price,
+                trading_price=ask_price,
                 exchange_provider=self.get_provider(),
                 created_at=datetime.now(),
             )
