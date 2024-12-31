@@ -1,5 +1,5 @@
 from fastapi import Query
-from pydantic import BaseModel
+from pydantic import BaseModel, create_model
 from typing import Optional, Literal
 
 

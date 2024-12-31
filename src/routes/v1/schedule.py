@@ -14,10 +14,6 @@ from src.databases.trade_history_database import TradeHistoryDatabase
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.params.cron_schedule_params import CronScheduleParams
 from src.models.params.interval_schedule_params import IntervalScheduleParams
-from src.models.response.base_response_dto import BaseResponse
-from src.models.trading_dto import TradingDto
-from src.models.trading_signal_dto import TradingSignalDto
-from src.models.types.types import ExchangeProvider, StrategyType
 from src.routes.dependencies.services import get_exchange_service, get_trade_service
 from src.services.exchange_service import ExchangeService
 from src.services.trade_service import TradeService
