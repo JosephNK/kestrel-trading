@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Protocol
+from typing import List, Optional, Tuple, Protocol
 import backtrader as bt
 import pandas as pd
 import numpy as np
 import talib
 
 from src.models.types.types import TradingSignal
+from src.strategy.strategies.helpers.custom_percent_sizer import StrategyBasePercent
 
 """
 Profitable Strategy 조건
@@ -40,12 +41,24 @@ class TradingParameters:
     stoch_oversold: int = 20  # 과매도 기준값
     stoch_overbought: int = 80  # 과매수 기준값
 
+    # 손절/익절 파라미터
+    stop_loss_pct: float = 2.0  # 진입가 기준 손절 비율 (%)
+    take_profit_pct: float = 4.0  # 진입가 기준 익절 비율 (%)
+    trailing_stop_pct: float = 1.5  # 최고가 대비 하락 시 청산 비율 (%)
+
 
 @dataclass
 class MarketData:
     close: np.ndarray
     high: np.ndarray
     low: np.ndarray
+
+
+@dataclass
+class TradingAnalyzeData:
+    signal: TradingSignal
+    reason: str
+    current_price: float
 
 
 # 기술적 지표 계산을 위한 프로토콜
@@ -113,8 +126,9 @@ class TradingStrategy(StrategyAnalyze):
         self.macd_prev = None
         self.macdsignal_prev = None
 
-    def analyze(self, market_data: MarketData) -> Tuple[List[str], List[str]]:
+    def analyze(self, market_data: MarketData) -> TradingAnalyzeData | None:
         check_index = -1  # -1 인덱스는 배열의 마지막 요소
+        current_price = market_data.close[check_index]  # 종가 데이터
 
         # 기술적 지표 계산
         rsi = self.indicator.calculate_rsi(market_data.close, self.params.rsi_period)
@@ -202,7 +216,33 @@ class TradingStrategy(StrategyAnalyze):
             msg for condition, msg in sell_conditions if condition
         ]
 
-        return satisfied_buy_conditions, satisfied_sell_conditions
+        if satisfied_buy_conditions and len(satisfied_buy_conditions) >= 3:
+            reason = (
+                f"매수 신호 발생 (조건 {len(satisfied_buy_conditions)}개 충족): "
+                + ", ".join(satisfied_buy_conditions)
+            )
+            return TradingAnalyzeData(
+                signal=TradingSignal.BUY,
+                reasons=reason,
+                current_price=current_price,
+            )
+
+        if satisfied_sell_conditions and len(satisfied_sell_conditions) >= 3:
+            reason = (
+                f"매도 신호 발생 (조건 {len(satisfied_sell_conditions)}개 충족): "
+                + ", ".join(satisfied_sell_conditions)
+            )
+            return TradingAnalyzeData(
+                signal=TradingSignal.SELL,
+                reason=reason,
+                current_price=current_price,
+            )
+
+        return TradingAnalyzeData(
+            signal=TradingSignal.HOLD,
+            reason=None,
+            current_price=current_price,
+        )
 
 
 # Backtrader에서 사용하는 전략 클래스
@@ -224,20 +264,20 @@ class BackTestingProfitableStrategy(bt.Strategy):
             low=np.array(self.data_low.get(size=50)),
         )
 
-        buy_signals, sell_signals = self.trading_strategy.analyze(market_data)
+        trading_analyze_data = self.trading_strategy.analyze(market_data)
 
-        if not self.position and len(buy_signals) >= 3:
+        if trading_analyze_data is None:
+            return
+
+        signal = trading_analyze_data.signal
+        reason = trading_analyze_data.reason
+
+        if not self.position and signal == TradingSignal.BUY:
             self.order = self.buy()
-            self.log(
-                f"매수 신호 발생 (조건 {len(buy_signals)}개 충족): "
-                + ", ".join(buy_signals)
-            )
-        elif self.position and len(sell_signals) >= 3:
+            self.log(reason)
+        elif self.position and signal == TradingSignal.SELL:
             self.order = self.sell()
-            self.log(
-                f"매도 신호 발생 (조건 {len(sell_signals)}개 충족): "
-                + ", ".join(sell_signals)
-            )
+            self.log(reason)
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
@@ -283,7 +323,12 @@ class RealTimeProfitableStrategy:
         self.trading_strategy = TradingStrategy(TradingParameters(), TALibIndicator())
         self.window_size = 50  # 분석에 사용할 데이터 윈도우 크기
 
-    def analyze_market(self, current_index: int = None) -> Tuple[TradingSignal, str]:
+    def analyze_market(
+        self,
+        current_index: int = None,
+        buy_percent: float = StrategyBasePercent.buy_percent,
+        sell_percent: float = StrategyBasePercent.sell_percent,
+    ) -> TradingAnalyzeData | None:
         """
         시장 데이터 분석 및 매매 신호 생성
 
@@ -303,19 +348,4 @@ class RealTimeProfitableStrategy:
             low=self.df["low"].values[start_idx:end_idx],
         )
 
-        buy_signals, sell_signals = self.trading_strategy.analyze(market_data)
-
-        if len(buy_signals) >= 3:
-            signal_condition = (
-                f"매수 신호 발생 (조건 {len(buy_signals)}개 충족): "
-                + ", ".join(buy_signals)
-            )
-            return (TradingSignal.BUY, signal_condition)
-        elif len(sell_signals) >= 3:
-            signal_condition = (
-                f"매도 신호 발생 (조건 {len(sell_signals)}개 충족): "
-                + ", ".join(sell_signals)
-            )
-            return (TradingSignal.SELL, signal_condition)
-
-        return (TradingSignal.HOLD, None)
+        return self.trading_strategy.analyze(market_data)
