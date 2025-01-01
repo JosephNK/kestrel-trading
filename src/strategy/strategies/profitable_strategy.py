@@ -309,7 +309,7 @@ class BackTestingProfitableStrategy(bt.Strategy):
                 )
 
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            self.log("주문 실패")
+            self.log(f"주문 실패: {order.status}")
 
         self.order = None  # 주문 상태 초기화
 

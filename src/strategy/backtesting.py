@@ -76,7 +76,6 @@ class Backtesting:
 
             # # 데이터 피드 추가
             data = CustomPandasData(dataname=df)
-
             self.cerebro.adddata(data)
 
             # 전략 추가
@@ -91,7 +90,7 @@ class Backtesting:
             # Percent Sizer
             self.cerebro.addsizer(
                 CustomPercentSizer,
-                # buy_percent=30,
+                buy_percent=90,
                 sell_percent=100,
             )
 

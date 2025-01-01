@@ -32,11 +32,15 @@ class BacktestingService(BaseService):
 
             self.exchange.ticker = ticker
 
-            # candle_df = self.exchange.get_candle(
-            #     count=candle_count, interval=candle_interval
-            # )
+            candle_df = self.exchange.get_candle(
+                count=candle_count, interval=candle_interval
+            )
 
-            candle_df = self.__get_yahoo_data(ticker="AAPL")
+            # candle_df = self.__get_yahoo_data(
+            #     ticker="BTC-USD",
+            #     start=datetime(2024, 1, 1),
+            #     end=datetime(2024, 12, 31),
+            # )
 
             backtesting = Backtesting()
 
@@ -88,10 +92,12 @@ class BacktestingService(BaseService):
     def __get_yahoo_data(
         self,
         ticker: str = "AAPL",
+        start: datetime = datetime(2023, 1, 1),
+        end: datetime = datetime(2023, 12, 31),
     ) -> pd.DataFrame:
         # yfinance로 데이터 가져오기
         yf_df = yf.Ticker(ticker).history(
-            start=datetime(2023, 7, 1),
-            end=datetime(2023, 12, 31),
+            start=start,
+            end=end,
         )
         return yf_df

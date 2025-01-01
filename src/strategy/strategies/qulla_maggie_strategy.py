@@ -172,9 +172,6 @@ class TradingStrategy:
 class BackTestingQullaMaggieStrategy(bt.Strategy):
     def __init__(self):
         self.trading_strategy = TradingStrategy(TradingParameters(), CustomIndicator())
-        self.data_close = self.data.close
-        self.data_high = self.data.high
-        self.data_low = self.data.low
         self.order = None  # order 상태 추적을 위해 추가
 
     def next(self):
@@ -182,9 +179,10 @@ class BackTestingQullaMaggieStrategy(bt.Strategy):
             return
 
         market_data = MarketData(
-            close=np.array(self.data_close.get(size=50)),
-            high=np.array(self.data_high.get(size=50)),
-            low=np.array(self.data_low.get(size=50)),
+            open=np.array(self.data0.open.get(size=50)),
+            close=np.array(self.data0.close.get(size=50)),
+            high=np.array(self.data0.high.get(size=50)),
+            low=np.array(self.data0.low.get(size=50)),
         )
 
         trading_analyze_data = self.trading_strategy.analyze(
