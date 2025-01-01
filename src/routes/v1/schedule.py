@@ -13,11 +13,18 @@ from src.databases.database import get_scheduler_db
 from src.databases.trade_history_database import TradeHistoryDatabase
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.params.cron_schedule_params import CronScheduleParams
-from src.models.params.interval_schedule_params import IntervalScheduleParams
+from src.models.params.trade_params import TradeParams
+from src.models.response.base_response_dto import BaseResponse
+from src.models.schedule_dto import ScheduleDto, ScheduleJobDto
 from src.routes.dependencies.services import get_exchange_service, get_trade_service
 from src.services.exchange_service import ExchangeService
 from src.services.trade_service import TradeService
 from src.utils.logging import Logging
+
+
+class ConbineScheduleParams(TradeParams, CronScheduleParams):
+    pass
+
 
 # Router 생성
 router = APIRouter()
@@ -49,8 +56,6 @@ def log_job_execution(func):
 
 
 def inject_dependencies(func: Callable):
-    """스케줄 작업을 위한 의존성 주입 데코레이터"""
-
     @wraps(func)
     def wrapper(*args, **kwargs):
         with get_scheduler_db() as db:
@@ -70,25 +75,10 @@ def inject_dependencies(func: Callable):
 
 @log_job_execution
 @inject_dependencies
-def periodic_task(
+def run_task(
     job_id: str = None,
     job_name: str = None,
-    db: Session = None,
-    trade_service: TradeService = None,
-    exchange_service: ExchangeService = None,
-):
-    Logging.info(
-        f"Job executed - ID: {job_id}, Name: {job_name}, Type: Periodic Task, Time: {datetime.now()}"
-    )
-    if job_id is None or job_name is None:
-        return
-
-
-@log_job_execution
-@inject_dependencies
-def daily_task(
-    job_id: str = None,
-    job_name: str = None,
+    params: ConbineScheduleParams = None,
     db: Session = None,
     trade_service: TradeService = None,
     exchange_service: ExchangeService = None,
@@ -96,7 +86,8 @@ def daily_task(
     Logging.info(
         f"Job executed - ID: {job_id}, Name: {job_name}, Type: Daily Task, Time: {datetime.now()}"
     )
-    if job_id is None or job_name is None:
+    print("params", params)
+    if job_id is None or job_name is None or params is None:
         return
 
 
@@ -111,32 +102,19 @@ def register_job_function(name: str, func):
 
 def init_scheduler():
     """기본 스케줄 작업 초기화"""
-    register_job_function("periodic_task", periodic_task)
-    register_job_function("daily_task", daily_task)
+    register_job_function("run_task", run_task)
 
-    scheduler.add_job(
-        periodic_task,
-        trigger=IntervalTrigger(minutes=1),
-        id="periodic_task",
-        name="1 minute periodic task",
-        replace_existing=True,
-        kwargs={
-            "job_id": None,
-            "job_name": None,
-        },
-    )
-
-    scheduler.add_job(
-        daily_task,
-        trigger=CronTrigger(hour=0, minute=0),
-        id="daily_task",
-        name="Daily midnight task",
-        replace_existing=True,
-        kwargs={
-            "job_id": None,
-            "job_name": None,
-        },
-    )
+    # scheduler.add_job(
+    #     run_task,
+    #     trigger=CronTrigger(hour=0, minute=0),
+    #     id="run_task",
+    #     name="init_run_task",
+    #     replace_existing=True,
+    #     kwargs={
+    #         "job_id": "run_task",
+    #         "job_name": "init_run_task",
+    #     },
+    # )
 
 
 def start_scheduler():
@@ -153,67 +131,33 @@ def shutdown_scheduler():
         scheduler.shutdown()
 
 
-# 스케줄 추가 API (Interval)
-@router.post("/schedule/interval")
-def add_interval_schedule(params: IntervalScheduleParams):
-    if params.func_name not in job_functions:
-        raise HttpJsonException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unknown function name",
-        )
-
-    trigger_kwargs = {}
-    if params.interval_seconds:
-        trigger_kwargs["seconds"] = params.interval_seconds
-    if params.interval_minutes:
-        trigger_kwargs["minutes"] = params.interval_minutes
-    if params.interval_hours:
-        trigger_kwargs["hours"] = params.interval_hours
-
-    if not trigger_kwargs:
-        raise HttpJsonException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least one interval parameter is required",
-        )
-
-    try:
-        scheduler.add_job(
-            job_functions[params.func_name],
-            trigger=IntervalTrigger(**trigger_kwargs),
-            id=params.job_id,
-            name=params.job_name,
-            replace_existing=True,
-            kwargs={
-                "job_id": params.job_id,
-                "job_name": params.job_name,
-            },
-        )
-        return {"message": "Schedule added successfully"}
-    except Exception as e:
-        raise HttpJsonException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
-
-
 # 스케줄 추가 API (Cron)
-@router.post("/schedule/cron")
-def add_cron_schedule(params: CronScheduleParams):
-    if params.func_name not in job_functions:
-        raise HttpJsonException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unknown function name",
-        )
-
-    trigger_kwargs = {
-        k: v
-        for k, v in params.model_dump().items()
-        if k not in ["job_type", "func_name", "job_id", "job_name"] and v is not None
-    }
-
+@router.post(
+    "/schedule/cron",
+    status_code=status.HTTP_200_OK,
+    response_model=BaseResponse[ScheduleDto],
+)
+def add_cron_schedule(params: ConbineScheduleParams):
     try:
+        trigger_kwargs = {
+            k: v
+            for k, v in params.model_dump().items()
+            if k
+            in [
+                "year",
+                "month",
+                "day",
+                "week",
+                "day_of_week",
+                "hour",
+                "minute",
+                "second",
+            ]
+            and v is not None
+        }
+
         scheduler.add_job(
-            job_functions[params.func_name],
+            job_functions["run_task"],
             trigger=CronTrigger(**trigger_kwargs),
             id=params.job_id,
             name=params.job_name,
@@ -221,80 +165,175 @@ def add_cron_schedule(params: CronScheduleParams):
             kwargs={
                 "job_id": params.job_id,
                 "job_name": params.job_name,
+                "params": params,
             },
         )
-        return {"message": "Schedule added successfully"}
+
+        return BaseResponse[ScheduleDto](
+            status_code=status.HTTP_200_OK,
+            item=ScheduleDto(
+                message=f"Schedule {params.job_id} added successfully",
+                executed_at=datetime.now(),
+            ),
+        )
+    except HttpJsonException as e:
+        raise e
     except Exception as e:
         raise HttpJsonException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
         )
 
 
 # 스케줄 삭제 API
-@router.delete("/schedule/{job_id}")
+@router.delete(
+    "/schedule/{job_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=BaseResponse[ScheduleDto],
+)
 def remove_schedule(job_id: str):
-    job = scheduler.get_job(job_id)
-    if not job:
-        raise HttpJsonException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Schedule not found",
-        )
+    try:
+        job = scheduler.get_job(job_id)
+        if not job:
+            raise HttpJsonException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                error_message="Schedule not found",
+            )
 
-    scheduler.remove_job(job_id)
-    return {"message": f"Schedule {job_id} removed successfully"}
+        scheduler.remove_job(job_id)
+
+        return BaseResponse[ScheduleDto](
+            status_code=status.HTTP_200_OK,
+            item=ScheduleDto(
+                message=f"Schedule {job_id} removed successfully",
+                executed_at=datetime.now(),
+            ),
+        )
+    except HttpJsonException as e:
+        raise e
+    except Exception as e:
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )
 
 
 # 스케줄 일시정지 API
-@router.post("/schedule/{job_id}/pause")
+@router.post(
+    "/schedule/{job_id}/pause",
+    status_code=status.HTTP_200_OK,
+    response_model=BaseResponse[ScheduleDto],
+)
 def pause_schedule(job_id: str):
-    job = scheduler.get_job(job_id)
-    if not job:
-        raise HttpJsonException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Schedule not found",
-        )
+    try:
+        job = scheduler.get_job(job_id)
+        if not job:
+            raise HttpJsonException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                error_message="Schedule not found",
+            )
 
-    scheduler.pause_job(job_id)
-    return {"message": f"Schedule {job_id} paused successfully"}
+        scheduler.pause_job(job_id)
+
+        return BaseResponse[ScheduleDto](
+            status_code=status.HTTP_200_OK,
+            item=ScheduleDto(
+                message=f"Schedule {job_id} paused successfully",
+                executed_at=datetime.now(),
+            ),
+        )
+    except HttpJsonException as e:
+        raise e
+    except Exception as e:
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )
 
 
 # 스케줄 재개 API
-@router.post("/schedule/{job_id}/resume")
+@router.post(
+    "/schedule/{job_id}/resume",
+    status_code=status.HTTP_200_OK,
+    response_model=BaseResponse[ScheduleDto],
+)
 def resume_schedule(job_id: str):
-    job = scheduler.get_job(job_id)
-    if not job:
-        raise HttpJsonException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Schedule not found",
-        )
+    try:
+        job = scheduler.get_job(job_id)
+        if not job:
+            raise HttpJsonException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                error_message="Schedule not found",
+            )
 
-    scheduler.resume_job(job_id)
-    return {"message": f"Schedule {job_id} resumed successfully"}
+        scheduler.resume_job(job_id)
+
+        return BaseResponse[ScheduleDto](
+            status_code=status.HTTP_200_OK,
+            item=ScheduleDto(
+                message=f"Schedule {job_id} resumed successfully",
+                executed_at=datetime.now(),
+            ),
+        )
+    except HttpJsonException as e:
+        raise e
+    except Exception as e:
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )
 
 
 # 스케줄 목록 조회 API
-@router.get("/scheduled-tasks")
+@router.get(
+    "/scheduled-tasks",
+    status_code=status.HTTP_200_OK,
+    response_model=BaseResponse[ScheduleJobDto],
+)
 def get_scheduled_tasks():
-    jobs = []
-    for job in scheduler.get_jobs():
-        jobs.append(
-            {
-                "id": job.id,
-                "name": job.name,
-                "next_run": str(job.next_run_time),
-                "trigger": str(job.trigger),
-                "func_name": job.func.__name__,
-            }
+    try:
+        jobs: list[str] = []
+        for job in scheduler.get_jobs():
+            jobs.append(job.id)
+
+        return BaseResponse[ScheduleJobDto](
+            status_code=status.HTTP_200_OK,
+            item=ScheduleJobDto(
+                job_id_list=jobs,
+                executed_at=datetime.now(),
+            ),
         )
-    return {"scheduled_tasks": jobs}
+    except HttpJsonException as e:
+        raise e
+    except Exception as e:
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )
 
 
 # 수동 실행 API
-@router.post("/trigger-task/{task_id}")
-def trigger_task(task_id: str):
-    job = scheduler.get_job(task_id)
-    if job:
+@router.post(
+    "/trigger-task/{job_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=BaseResponse[ScheduleDto],
+)
+def trigger_task(job_id: str):
+    try:
+        job = scheduler.get_job(job_id)
+        if not job:
+            raise HttpJsonException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                error_message="Schedule not found",
+            )
+
         job.func()
-        return {"message": f"Task {task_id} triggered successfully"}
-    return {"error": "Task not found"}
+
+        return BaseResponse[ScheduleDto](
+            status_code=status.HTTP_200_OK,
+            item=ScheduleDto(
+                message=f"Schedule {job_id} triggered successfully",
+                executed_at=datetime.now(),
+            ),
+        )
+    except HttpJsonException as e:
+        raise e
+    except Exception as e:
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )

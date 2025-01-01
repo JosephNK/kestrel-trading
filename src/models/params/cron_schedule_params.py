@@ -4,13 +4,6 @@ from typing import Optional, Literal
 
 
 class CronScheduleParams(BaseModel):
-    job_type: Literal["cron"] = Query(
-        default="cron",
-        description="작업 유형 (Cron 기반 스케줄링)",
-    )
-    func_name: str = Query(
-        description="실행할 함수 이름",
-    )
     year: Optional[str] = Query(
         default=None,
         regex="^[0-9*/,-]+$",
