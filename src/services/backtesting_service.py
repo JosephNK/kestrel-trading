@@ -44,28 +44,12 @@ class BacktestingService(BaseService):
 
             backtesting = Backtesting()
 
-            item: BackTestingDto = None
-
-            if strategy_type == StrategyType.RSI:
-                item = backtesting.run_rsi_strategy(
-                    ticker=ticker,
-                    df=candle_df,
-                )
-                item.exchange_provider = self.exchange.get_provider()
-
-            if strategy_type == StrategyType.PROFITABLE:
-                item = backtesting.run_profitable_strategy(
-                    ticker=ticker,
-                    df=candle_df,
-                )
-                item.exchange_provider = self.exchange.get_provider()
-
-            if strategy_type == StrategyType.QULLAMAGGIE:
-                item = backtesting.run_qulla_maggie_strategy(
-                    ticker=ticker,
-                    df=candle_df,
-                )
-                item.exchange_provider = self.exchange.get_provider()
+            item: BackTestingDto = backtesting.run_strategy(
+                ticker=ticker,
+                df=candle_df,
+                strategy_type=strategy_type,
+            )
+            item.exchange_provider = self.exchange.get_provider()
 
             if item is None:
                 raise HttpJsonException(

@@ -13,13 +13,11 @@ plt.rcParams["figure.figsize"] = [15, 7]
 class BackTestingAnalyzer:
     cerebro: bt.Cerebro
     df: pd.DataFrame
-    initial_cash: int
 
-    def __init__(self, cerebro: bt.Cerebro, df: pd.DataFrame, initial_cash: int):
+    def __init__(self, cerebro: bt.Cerebro, df: pd.DataFrame):
         # Initialize
         self.cerebro = cerebro
         self.df = df
-        self.initial_cash = initial_cash
 
         # 분석기 추가
         """
