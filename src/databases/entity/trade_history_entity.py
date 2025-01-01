@@ -11,6 +11,7 @@ class TradeHistoryEntity(Base):
     __tablename__ = "trade_history"
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
+    job_id = Column(String(255), unique=False, nullable=True)
     name = Column(String(255), unique=False, nullable=True)
     unit = Column(String(255), unique=False, nullable=True)
     decision = Column(String(255), unique=False, nullable=True)

@@ -5,6 +5,10 @@ import backtrader as bt
 from src.models.backtesting_dto import BackTestingDto, BackTestingTransactionDto
 from src.strategy.analyzer.helpers.candle_graph_chart import CandleGraphChart
 
+import matplotlib.pyplot as plt
+
+plt.rcParams["figure.figsize"] = [15, 7]
+
 
 class BackTestingAnalyzer:
     cerebro: bt.Cerebro
@@ -117,7 +121,19 @@ class BackTestingAnalyzer:
         file_path = None
         if platform.system() == "Darwin":  # macOS
             # 결과 그래프 출력
-            self.cerebro.plot(style="candle", volume=True)
+            self.cerebro.plot(
+                title="Strategy",
+                style="candle",  # 캔들차트 스타일
+                # barup="red",  # 양봉 색상
+                # bardown="blue",  # 음봉 색상
+                # barup_wick="red",  # 양봉 심지 색상
+                # bardown_wick="blue",  # 음봉 심지 색상
+                volume=True,  # 거래량 표시
+                plotlog=False,  # 로그 스케일 사용 여부
+                fmt_x_ticks="%Y%m%d",  # x축 날짜 형식
+                width=0.8,  # 캔들 너비
+                spacing=3.0,  # 캔들 간격
+            )
         else:
             # 결과 그래프 저장
             file_path = CandleGraphChart.save_fig(

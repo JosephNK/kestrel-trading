@@ -188,8 +188,7 @@ class BackTestingQullaMaggieStrategy(bt.Strategy):
         )
 
         trading_analyze_data = self.trading_strategy.analyze(
-            market_data,
-            trading_percent=None,
+            market_data=market_data,
         )
 
         if trading_analyze_data is None:

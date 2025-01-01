@@ -1,5 +1,8 @@
 import pandas as pd
 import backtrader as bt
+import yfinance as yf
+
+from datetime import datetime
 
 from src.models.backtesting_dto import BackTestingDto
 from src.strategy.analyzer.analyzer import BackTestingAnalyzer
@@ -25,6 +28,7 @@ class Backtesting:
     ) -> BackTestingDto:
         try:
             # 데이터 준비 및 전략 실행
+            # df_ready.index = pd.to_datetime(df_ready.index).tz_localize(None)
             df.index = pd.to_datetime(df.index)
 
             # 데이터 피드 추가
@@ -66,11 +70,13 @@ class Backtesting:
         commission: float = 0.0005,
     ) -> BackTestingDto:
         try:
-            # 데이터 준비 및 전략 실행
+            # # 데이터 준비 및 전략 실행
+            # df_ready.index = pd.to_datetime(df_ready.index).tz_localize(None)
             df.index = pd.to_datetime(df.index)
 
-            # 데이터 피드 추가
+            # # 데이터 피드 추가
             data = CustomPandasData(dataname=df)
+
             self.cerebro.adddata(data)
 
             # 전략 추가
@@ -86,7 +92,7 @@ class Backtesting:
             self.cerebro.addsizer(
                 CustomPercentSizer,
                 # buy_percent=30,
-                # sell_percent=50,
+                sell_percent=100,
             )
 
             # 백테스팅 결과
@@ -109,6 +115,7 @@ class Backtesting:
     ) -> BackTestingDto:
         try:
             # 데이터 준비 및 전략 실행
+            # df_ready.index = pd.to_datetime(df_ready.index).tz_localize(None)
             df.index = pd.to_datetime(df.index)
 
             # 데이터 피드 추가

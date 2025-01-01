@@ -1,5 +1,7 @@
 import inspect
-
+import pandas as pd
+import yfinance as yf
+import backtrader as bt
 
 from datetime import datetime
 from fastapi import status
@@ -30,9 +32,11 @@ class BacktestingService(BaseService):
 
             self.exchange.ticker = ticker
 
-            candle_df = self.exchange.get_candle(
-                count=candle_count, interval=candle_interval
-            )
+            # candle_df = self.exchange.get_candle(
+            #     count=candle_count, interval=candle_interval
+            # )
+
+            candle_df = self.__get_yahoo_data(ticker="AAPL")
 
             backtesting = Backtesting()
 
@@ -80,3 +84,14 @@ class BacktestingService(BaseService):
             raise HttpJsonException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
             )
+
+    def __get_yahoo_data(
+        self,
+        ticker: str = "AAPL",
+    ) -> pd.DataFrame:
+        # yfinance로 데이터 가져오기
+        yf_df = yf.Ticker(ticker).history(
+            start=datetime(2023, 7, 1),
+            end=datetime(2023, 12, 31),
+        )
+        return yf_df

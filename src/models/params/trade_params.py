@@ -25,7 +25,7 @@ class TradeParams(BaseModel):
     )
     candle_interval: str = Query(
         default="day",
-        regex="^(day|minute|week|month)$",
+        regex="^(day|minute1|minute3|minute5|minute10|minute15|minute30|minute60|minute240|week|month)$",
         description="캔들 간격",
     )
     buy_percent: float = Query(

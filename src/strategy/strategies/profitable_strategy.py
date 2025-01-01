@@ -1,8 +1,10 @@
-from dataclasses import dataclass
-from typing import Optional
 import backtrader as bt
 import pandas as pd
 import numpy as np
+
+from dataclasses import dataclass
+from typing import Optional
+from datetime import datetime
 
 from src.models.types.types import TradingSignal
 from src.strategy.strategies.base.base_strategy import BaseStrategy
@@ -75,7 +77,7 @@ class TradingRisk:
                 price=0.0,
             )
 
-        current_price = market_data.close[check_index]
+        current_price = market_data.close[check_index]  # 현재가
         entry_price = current_position.entry_price
 
         # 손절 체크
@@ -193,9 +195,11 @@ class TradingStrategy:
             msg for condition, msg in sell_conditions if condition
         ]
 
+        current_price = market_data.close[check_index]  # 현재가
+
         if satisfied_buy_conditions and len(satisfied_buy_conditions) >= 3:
             reason = (
-                f"매수 신호 발생 (조건 {len(satisfied_buy_conditions)}개 충족): "
+                f"매수 신호 발생 (조건 {len(satisfied_buy_conditions)}개 충족, 현재가 {current_price:.2f}): "
                 + ", ".join(satisfied_buy_conditions)
             )
             return TradingAnalyzeData(
@@ -205,7 +209,7 @@ class TradingStrategy:
 
         if satisfied_sell_conditions and len(satisfied_sell_conditions) >= 3:
             reason = (
-                f"매도 신호 발생 (조건 {len(satisfied_sell_conditions)}개 충족): "
+                f"매도 신호 발생 (조건 {len(satisfied_sell_conditions)}개 충족, 현재가 {current_price:.2f}): "
                 + ", ".join(satisfied_sell_conditions)
             )
             return TradingAnalyzeData(
@@ -223,24 +227,35 @@ class TradingStrategy:
 class BackTestingProfitableStrategy(bt.Strategy):
     def __init__(self):
         self.trading_strategy = TradingStrategy(TradingParameters(), CustomIndicator())
-        self.data_close = self.data.close
-        self.data_high = self.data.high
-        self.data_low = self.data.low
         self.order = None  # order 상태 추적을 위해 추가
+        # print("\n전체 데이터 길이:", self.data0.buflen())
+        # self.target_date = datetime(2023, 9, 25).date()  # 찾고자 하는 날짜
 
     def next(self):
+        # # 특정 날짜 데이터 찾기
+        # current_date = self.data0.datetime.date()
+        # if current_date == self.target_date:
+        #     print(f"\n찾은 날짜의 데이터:")
+        #     print("Date:", current_date)
+        #     print("Open:", self.data0.open[0])
+        #     print("High:", self.data0.high[0])
+        #     print("Low:", self.data0.low[0])
+        #     print("Close:", self.data0.close[0])
+        #     print("Volume:", self.data0.volume[0])
+        #     print(f"\n")
+
         if len(self.data) < 50:
             return
 
         market_data = MarketData(
-            close=np.array(self.data_close.get(size=50)),
-            high=np.array(self.data_high.get(size=50)),
-            low=np.array(self.data_low.get(size=50)),
+            open=np.array(self.data0.open.get(size=50)),
+            close=np.array(self.data0.close.get(size=50)),
+            high=np.array(self.data0.high.get(size=50)),
+            low=np.array(self.data0.low.get(size=50)),
         )
 
         trading_analyze_data = self.trading_strategy.analyze(
-            market_data,
-            trading_percent=None,
+            market_data=market_data,
         )
 
         if trading_analyze_data is None:
@@ -249,15 +264,8 @@ class BackTestingProfitableStrategy(bt.Strategy):
         signal = trading_analyze_data.signal
         reason = trading_analyze_data.reason
 
-        # 포지션이 없고 매수 신호가 발생하면 매수
-        if not self.position and signal == TradingSignal.BUY:
-            self.order = self.buy(
-                exectype=bt.Order.Market,
-            )
-            self.log(reason)
-
-        # 손절/익절 체크
-        if self.position:
+        # 포지션이 있고 손절/익절 체크
+        if self.position.size > 0:
             trading_risk = TradingRisk(TradingParameters(), CustomIndicator())
             risk_position = trading_risk.check_exit_conditions(
                 current_position=EntryPosition(
@@ -271,6 +279,13 @@ class BackTestingProfitableStrategy(bt.Strategy):
                 )
                 self.log(risk_position.reason)
                 return
+
+        # 포지션이 없고 매수 신호가 발생하면 매수
+        if not self.position and signal == TradingSignal.BUY:
+            self.order = self.buy(
+                exectype=bt.Order.Market,
+            )
+            self.log(reason)
 
         # 포지션이 있고 매도 신호가 발생하면 매도
         if self.position and signal == TradingSignal.SELL:

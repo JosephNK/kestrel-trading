@@ -33,7 +33,6 @@ class BaseStrategy:
 
         Args:
             current_index: 현재 분석할 시점의 인덱스
-            trading_percent: 매매 비율 설정
             entry_position: 진입 포지션 설정
         """
 

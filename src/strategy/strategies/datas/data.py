@@ -7,6 +7,7 @@ from src.models.types.types import TradingSignal
 
 @dataclass
 class MarketData:
+    open: np.ndarray
     close: np.ndarray
     high: np.ndarray
     low: np.ndarray
