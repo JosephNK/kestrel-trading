@@ -1,3 +1,4 @@
+from datetime import datetime
 import platform
 import pandas as pd
 import backtrader as bt
@@ -158,6 +159,7 @@ class BackTestingAnalyzer:
             roi_per=roi_per,
             transactions=transaction_dtos,
             candle_graph_chart_file_path=file_path,
+            created_at=datetime.now(),
         )
 
     def get_transactions(self, transactions) -> list[BackTestingTransactionDto]:
@@ -165,14 +167,24 @@ class BackTestingAnalyzer:
         items: list[BackTestingTransactionDto] = []
         for date, trades in transactions.items():
             for trade in trades:
+                order_quantity = trade[0]  # amount 주문수량
+                execution_price = trade[1]  # price 체결가격
+                stock_id = str(trade[2])  # sid 종목ID
+                stock_code = str(trade[3])  # symbol 종목코드
+                transaction_value = trade[4]  # value 거래금액
+                trade_signal = (
+                    "BUY" if transaction_value > 0 else "SELL"
+                )  # signal 매수/매도
+                executed_at = date  # date 거래일시
                 items.append(
                     BackTestingTransactionDto(
-                        order_quantity=trade[0],  # amount 주문수량
-                        execution_price=trade[1],  # price 체결가격
-                        stock_id=str(trade[2]),  # sid 종목ID
-                        stock_code=str(trade[3]),  # symbol 종목코드
-                        transaction_value=trade[4],  # value 거래금액
-                        executed_at=date,  # date 거래일시
+                        trade_signal=trade_signal,
+                        order_quantity=order_quantity,
+                        execution_price=execution_price,
+                        stock_id=stock_id,
+                        stock_code=stock_code,
+                        transaction_value=transaction_value,
+                        executed_at=executed_at,
                     )
                 )
         return items

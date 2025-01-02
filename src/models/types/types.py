@@ -3,6 +3,7 @@ from enum import Enum
 
 class ExchangeProvider(str, Enum):
     UPBIT = "Upbit"
+    YAHOOFINANCE = "YahooFinance"
 
 
 class StrategyType(str, Enum):

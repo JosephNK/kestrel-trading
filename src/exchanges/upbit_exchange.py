@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Tuple
+from typing import Optional
 import pyupbit
 
 import pandas as pd
@@ -171,6 +171,8 @@ class UpbitExchange(BaseExchange):
     # Get Candle Data
     def get_candle(
         self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         count: int = 24,
         interval: str = "day",
     ) -> pd.DataFrame:

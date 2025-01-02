@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 # 백테스팅 거래 내역을 표현하는 DTO 클래스
 class BackTestingTransactionDto(BaseModel):
     id: int | None = None  # 거래 내역 고유 식별자
+    trade_signal: str | None = None  # 거래 신호
     order_quantity: float | None = None  # 주문 수량
     execution_price: float | None = None  # 체결 가격
     stock_id: str | None = None  # 주식 고유 식별자

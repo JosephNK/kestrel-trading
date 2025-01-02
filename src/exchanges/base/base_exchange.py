@@ -1,3 +1,4 @@
+from typing import Optional
 import pandas as pd
 
 from abc import ABC, abstractmethod
@@ -28,6 +29,8 @@ class BaseExchange(ABC):
     @abstractmethod
     def get_candle(
         self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         count: int = 24,
         interval: str = "day",
     ) -> pd.DataFrame:
