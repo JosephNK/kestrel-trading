@@ -64,8 +64,9 @@ class TradingRisk:
 
     def check_exit_conditions(
         self,
-        market_data: MarketData,
         current_position: Optional[EntryPosition],
+        market_data: MarketData,
+        current_date: datetime,
         check_index: int = -1,
     ) -> RiskPosition:
         """현물 매도 조건 체크 (손절/익절)"""
@@ -86,7 +87,7 @@ class TradingRisk:
             if current_price <= stop_loss_price:
                 return RiskPosition(
                     selling=True,
-                    reason=f"손절 매도: 가격 {current_price:.2f}, 진입가 {entry_price:.2f} 대비 {self.params.stop_loss_pct}% 하락",
+                    reason=f"[{current_date}] 손절 매도: 가격 {current_price:.2f}, 현재가: {current_price:.2f}, 진입가 {entry_price:.2f} 대비 {self.params.stop_loss_pct}% 하락",
                     price=stop_loss_price,
                 )
 
@@ -96,7 +97,7 @@ class TradingRisk:
             if current_price >= take_profit_price:
                 return RiskPosition(
                     selling=True,
-                    reason=f"익절 매도: 가격 {current_price:.2f}, 진입가 {entry_price:.2f} 대비 {self.params.take_profit_pct}% 상승",
+                    reason=f"[{current_date}] 익절 매도: 가격 {current_price:.2f}, 현재가: {current_price:.2f}, 진입가 {entry_price:.2f} 대비 {self.params.take_profit_pct}% 상승",
                     price=take_profit_price,
                 )
 
@@ -266,12 +267,14 @@ class BackTestingProfitableStrategy(bt.Strategy):
 
         # 포지션이 있고 손절/익절 체크
         if self.position.size > 0:
+            current_date = self.data0.datetime.datetime()
             trading_risk = TradingRisk(TradingParameters(), CustomIndicator())
             risk_position = trading_risk.check_exit_conditions(
                 current_position=EntryPosition(
                     entry_price=self.position.price,
                 ),
                 market_data=market_data,
+                current_date=current_date,
             )
             if risk_position.selling:
                 self.order = self.sell(
@@ -349,6 +352,7 @@ class RealTimeProfitableStrategy(BaseStrategy):
             risk_position = trading_risk.check_exit_conditions(
                 current_position=self.entry_position,
                 market_data=self.market_data,
+                current_date=None,
             )
             if risk_position.selling:
                 return TradingAnalyzeData(

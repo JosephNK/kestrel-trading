@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from src.models.exception.validate_exception_message import ValidateExceptionMessage
 from src.routes.v1 import (
     health as health_v1,
     schedule as schedule_v1,
@@ -55,7 +56,7 @@ app.add_middleware(
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    errors: list[str] = []
+    errors: list[ValidateExceptionMessage] = []
     for error in exc.errors():
         if error["type"] == "string_pattern_mismatch":
             loc, input_value, msg = (
@@ -63,15 +64,24 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
                 error.get("input", ""),
                 error.get("msg", ""),
             )
-
-            errors.append(f"field: {loc}, input: {input_value}, message: {msg}")
+            errors.append(
+                ValidateExceptionMessage(
+                    field=loc,
+                    message=msg,
+                )
+            )
         else:
-            errors.append(str(error))
+            errors.append(
+                ValidateExceptionMessage(
+                    field="",
+                    message=str(error),
+                )
+            )
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "statusCode": status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "errorMessage": "\n".join(errors),
+            "errorMessage": "\n".join(str(error) for error in errors),
         },
     )
 
