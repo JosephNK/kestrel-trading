@@ -8326,27 +8326,13 @@ mpmath = ">=1.1.0,<1.4"
 dev = ["hypothesis (>=6.70.0)", "pytest (>=7.1.0)"]
 
 [[package]]
-name = "ta"
-version = "0.11.0"
-description = "Technical Analysis Library in Python"
-optional = false
-python-versions = "*"
-files = [
-    {file = "ta-0.11.0.tar.gz", hash = "sha256:de86af43418420bd6b088a2ea9b95483071bf453c522a8441bc2f12bcf8493fd"},
-]
-
-[package.dependencies]
-numpy = "*"
-pandas = "*"
-
-[[package]]
 name = "ta-lib"
-version = "0.5.2"
+version = "0.6.0"
 description = "Python wrapper for TA-Lib"
 optional = false
 python-versions = "*"
 files = [
-    {file = "TA-Lib-0.5.2.tar.gz", hash = "sha256:73579fd9fbf801f222a80c53d5db1c081aee13e3ad053bd479f12f81ca3b7db8"},
+    {file = "ta_lib-0.6.0.tar.gz", hash = "sha256:b66f3bcdc4a787731d0aa82af72f60d74aa0d1705d0e702da3b1cf48343e7e90"},
 ]
 
 [package.dependencies]
@@ -9942,4 +9928,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.12"
-content-hash = "c32b6163c31a49dd913adc1f64f7c4fcd3e0704372d875dfd595effae093d704"
+content-hash = "e7d66934d37c8615791f179b1a96b5f99515fa4d532533388ca3edca3aec34da"
