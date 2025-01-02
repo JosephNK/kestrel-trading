@@ -1,8 +1,10 @@
 from fastapi import status, APIRouter, Depends
+from datetime import datetime
+
 from src.databases.database import get_db
 from src.models.backtesting_dto import BackTestingDto
 from src.models.exception.http_json_exception import HttpJsonException
-from src.models.params.strategy_params import StrategyParams
+from src.models.params.strategy_params import StrategyDateParams, StrategyParams
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_signal_dto import TradingSignalDto
 from src.models.types.types import ExchangeProvider, StrategyType
@@ -71,6 +73,32 @@ async def strategy_backtesting(
             strategy_type=params.strategy_type,
             candle_count=200,
             candle_interval=params.candle_interval,
+        )
+    except HttpJsonException as e:
+        raise e
+    except Exception as e:
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )
+
+
+# Get Backtesting Strategy Yahoo Finance API (/api/v1/strategy/backtesting/yf)
+@router.get(
+    "/strategy/backtesting/yf",
+    status_code=status.HTTP_200_OK,
+    response_model=BaseResponse[BackTestingDto],
+)
+async def strategy_backtesting(
+    params: StrategyDateParams = Depends(),
+    backtesting_service: BacktestingService = Depends(get_backtesting_service),
+):
+    try:
+        return backtesting_service.run_testing_yf(
+            ticker=params.ticker,
+            strategy_type=params.strategy_type,
+            start_date=params.start_date,
+            end_date=params.end_date,
+            interval=params.interval,
         )
     except HttpJsonException as e:
         raise e

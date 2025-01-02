@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -50,6 +51,29 @@ app.add_middleware(
     allow_methods=["*"],  # 모든 HTTP 메서드 허용
     allow_headers=["*"],  # 모든 HTTP 헤더 허용
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors: list[str] = []
+    for error in exc.errors():
+        if error["type"] == "string_pattern_mismatch":
+            loc, input_value, msg = (
+                error.get("loc", ["", ""])[1] if len(error.get("loc", [])) > 1 else "",
+                error.get("input", ""),
+                error.get("msg", ""),
+            )
+
+            errors.append(f"field: {loc}, input: {input_value}, message: {msg}")
+        else:
+            errors.append(str(error))
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "statusCode": status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "errorMessage": "\n".join(errors),
+        },
+    )
 
 
 # 예외 처리기 설정
