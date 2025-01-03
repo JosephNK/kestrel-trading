@@ -1,12 +1,16 @@
+from os import getenv
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Request, status
+from fastapi import Depends, FastAPI, Query, Request, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 
 from src.models.exception.validate_exception_message import ValidateExceptionMessage
 from src.routes.v1 import (
+    auth as auth_v1,
     health as health_v1,
     schedule as schedule_v1,
     strategy as strategy_v1,
@@ -16,6 +20,7 @@ from src.models.exception.http_json_exception import HttpJsonException
 from src.routes.dependencies.services import (
     get_backtesting_service,
     get_exchange_service,
+    get_supabase_service,
     get_trade_service,
 )
 from src.utils.logging import Logging
@@ -58,6 +63,7 @@ app.add_middleware(
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors: list[ValidateExceptionMessage] = []
     for error in exc.errors():
+        Logging.error(msg="Validation", error=error)
         if error["type"] == "string_pattern_mismatch":
             loc, input_value, msg = (
                 error.get("loc", ["", ""])[1] if len(error.get("loc", [])) > 1 else "",
@@ -100,6 +106,14 @@ async def unicorn_exception_handler(request: Request, exc: HttpJsonException):
 
 # 라우터 등록
 app.include_router(
+    auth_v1.router,
+    prefix="/api/v1",
+    tags=["auth_v1"],
+    dependencies=[
+        Depends(get_supabase_service),
+    ],
+)
+app.include_router(
     health_v1.router,
     tags=["health_v1"],
 )
@@ -126,6 +140,39 @@ app.include_router(
         Depends(get_trade_service),
     ],
 )
+
+
+# HTML 템플릿을 위한 디렉토리 설정
+templates = Jinja2Templates(directory="static")
+
+# 정적 파일(CSS, JS, 이미지 등)을 위한 디렉토리 설정
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# Auth Callback 대한 GET 요청 처리
+@app.get("/auth/callback", response_class=HTMLResponse)
+async def callback(
+    request: Request,
+):
+    query_params = dict(request.query_params)
+
+    title: str = "Your registration is being confirmed."
+    if query_params:
+        error = query_params.get("error")
+        error_description = query_params.get("error_description")
+        if error and error_description:
+            title = f"{error_description}"
+        else:
+            title = "Your registration has been successfully confirmed."
+
+    return templates.TemplateResponse(
+        "callback.html",
+        {
+            "request": request,
+            "title": f"{title}",
+        },
+    )
+
 
 # LangSmith Enabled
 Logging.langSmith(project_name=project_name)
