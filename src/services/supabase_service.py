@@ -129,20 +129,3 @@ class SupabaseService:
             raise HttpJsonException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
             )
-
-    def verify_confirm_signup(
-        self,
-        data: dict,
-    ) -> BaseResponse[UserDto]:
-        try:
-            print("data", data)
-            return BaseResponse[UserDto](
-                status_code=status.HTTP_200_OK,
-                item=UserDto(),
-            )
-        except HttpJsonException as e:
-            raise e
-        except Exception as e:
-            raise HttpJsonException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
-            )

@@ -1,6 +1,7 @@
 from os import getenv
+from typing import Any, Dict, Optional
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Query, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,6 +60,7 @@ app.add_middleware(
 )
 
 
+# RequestValidationError 처리 설정
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors: list[ValidateExceptionMessage] = []
@@ -92,7 +94,20 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-# 예외 처리기 설정
+# HTTPException도 처리 설정
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "statusCode": exc.status_code,
+            "errorMessage": str(exc.detail),
+            "path": request.url.path,
+        },
+    )
+
+
+# HttpJsonException 처리 설정
 @app.exception_handler(HttpJsonException)
 async def unicorn_exception_handler(request: Request, exc: HttpJsonException):
     return JSONResponse(
@@ -100,6 +115,7 @@ async def unicorn_exception_handler(request: Request, exc: HttpJsonException):
         content={
             "statusCode": exc.status_code,
             "errorMessage": exc.error_message,
+            "path": request.url.path,
         },
     )
 

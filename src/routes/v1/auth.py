@@ -1,8 +1,5 @@
-from typing import Any
-from fastapi import Body, Request, status, APIRouter, Depends
-from fastapi.responses import JSONResponse
+from fastapi import Body, status, APIRouter, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
 
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.params.signup_param import SignupEmailParams
@@ -21,23 +18,21 @@ router = APIRouter()
 security = HTTPBearer()
 
 
-# # JWT 검증을 위한 의존성 함수
-# async def verify_token(
-#     credentials: HTTPAuthorizationCredentials = Depends(security),
-#     supabase: Client = Depends(get_supabase),
-# ) -> dict:
-#     try:
-#         token = credentials.credentials
-#         user = supabase.auth.get_user(token)
-#         return user.model_dump()
-#     except Exception as e:
-#         raise JSONResponse(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             content={
-#                 "statusCode": status.HTTP_401_UNAUTHORIZED,
-#                 "errorMessage": "Invalid authentication credentials",
-#             },
-#         )
+# JWT 검증을 위한 의존성 함수
+def verify_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    supabase_service: SupabaseService = Depends(get_supabase_service),
+) -> dict:
+    try:
+        token = credentials.credentials
+        user = supabase_service.supabase.auth.get_user(token)
+        return user.model_dump()
+    except Exception as e:
+        Logging.error(msg="Token verification failed:", error=e)
+        raise HttpJsonException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_message=f"Invalid authentication credentials {str(e)}",
+        )
 
 
 # Get Sign up password API (/api/v1/auth/signup/password)

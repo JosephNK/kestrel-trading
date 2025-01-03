@@ -10,6 +10,7 @@ from src.models.trading_dto import TradingDto
 from src.models.trading_signal_dto import TradingSignalDto
 from src.models.types.types import ExchangeProvider, StrategyType
 from src.routes.dependencies.services import get_exchange_service, get_trade_service
+from src.routes.v1.auth import verify_token
 from src.services.exchange_service import ExchangeService
 from src.services.trade_service import TradeService
 from src.utils.logging import Logging
@@ -25,6 +26,7 @@ router = APIRouter()
     response_model=BaseResponse[TradingDto],
 )
 async def trade_strategy(
+    user: dict = Depends(verify_token),
     params: TradeParams = Depends(),
     trader_service: TradeService = Depends(get_trade_service),
     exchange_service: ExchangeService = Depends(get_exchange_service),
@@ -52,6 +54,7 @@ async def trade_strategy(
     response_model=BaseResponse[TradingDto],
 )
 async def trade_agent(
+    user: dict = Depends(verify_token),
     params: TradeParams = Depends(),
     trader_service: TradeService = Depends(get_trade_service),
     exchange_service: ExchangeService = Depends(get_exchange_service),
