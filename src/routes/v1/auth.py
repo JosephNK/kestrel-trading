@@ -63,7 +63,7 @@ async def signup_email(
         )
 
 
-# Get Sign up password API (/api/v1/auth/signin/password)
+# Get Sign in password API (/api/v1/auth/signin/password)
 @router.post(
     "/auth/signin/password",
     status_code=status.HTTP_200_OK,
