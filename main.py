@@ -27,7 +27,7 @@ project_name = "Kestrel"
 Logging.init()
 
 # .env 파일에서 환경변수 로드
-load_dotenv()
+load_dotenv(override=True)
 
 
 # 스케줄러 인스턴스 생성

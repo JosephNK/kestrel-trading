@@ -9,6 +9,7 @@ class TradeHistoryEntity(Base):
     """TradeHistory"""
 
     __tablename__ = "trade_history"
+    __table_args__ = {"schema": "kestrel"}
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
     job_id = Column(String(255), unique=False, nullable=True)

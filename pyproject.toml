@@ -100,6 +100,7 @@ apscheduler = "^3.11.0"
 pytz = "^2024.2"
 yfinance = "^0.2.51"
 ta-lib = "^0.6.0"
+supabase = "^2.11.0"
 
 [build-system]
 requires = ["poetry-core"]

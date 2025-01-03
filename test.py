@@ -6,7 +6,7 @@ from src.strategy.backtesting import Backtesting
 from src.strategy.strategies.profitable_strategy import RealTimeProfitableStrategy
 from src.utils.whale_etherscan import EtherscanWhaleTransaction
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 def main1():

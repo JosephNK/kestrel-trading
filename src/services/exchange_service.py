@@ -60,7 +60,8 @@ class ExchangeService(BaseService):
 
             # 데이터 조회
             candle_df = self.exchange.get_candle(
-                count=candle_count, interval=candle_interval
+                count=candle_count,
+                interval=candle_interval,
             )
 
             # 전략
@@ -116,7 +117,8 @@ class ExchangeService(BaseService):
             investment_status = self.exchange.get_current_investment_status()
             orderbook_status = self.exchange.get_orderbook_status()
             candle_df = self.exchange.get_candle(
-                count=candle_count, interval=candle_interval
+                count=candle_count,
+                interval=candle_interval,
             )
 
             # 전략

@@ -1,16 +1,32 @@
 from contextlib import contextmanager
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+from sqlalchemy.schema import CreateSchema
 from sqlalchemy.ext.declarative import declarative_base
 
 from config import DATABASE_URI
 
-engine = create_engine(DATABASE_URI, echo=False)
+# 데이터베이스 연결
+engine = create_engine(
+    DATABASE_URI,
+    client_encoding="utf8",
+    poolclass=NullPool,
+    echo=True,
+    # connect_args={
+    #     "options": "-csearch_path={}".format("kestrel"),
+    # },
+)
 
-# Create database session
+# 스키마 생성 (없는 경우)
+with engine.connect() as conn:
+    conn.execute(text("CREATE SCHEMA IF NOT EXISTS kestrel"))
+    conn.commit()
+
+# 세션 생성
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create Base
+# Base 클래스 생성
 Base = declarative_base()
 
 

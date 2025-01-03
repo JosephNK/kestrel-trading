@@ -9,6 +9,7 @@ class ScheduleJobEntity(Base):
     """ScheduleJob"""
 
     __tablename__ = "schedule_job"
+    __table_args__ = {"schema": "kestrel"}
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
     job_id = Column(String(255), unique=True, nullable=True)

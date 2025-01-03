@@ -44,6 +44,7 @@ class BaseStrategy:
         end_idx = last_index + 1
 
         self.market_data = MarketData(
+            open=self.df["open"].values[start_idx:end_idx],
             close=self.df["close"].values[start_idx:end_idx],
             high=self.df["high"].values[start_idx:end_idx],
             low=self.df["low"].values[start_idx:end_idx],

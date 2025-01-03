@@ -90,13 +90,13 @@ class TradeService(BaseService):
 
             # 매매 실행
             trading_response = self.run_trade(
-                dto=trading_signal_dto,
-                # dto=TradingSignalDto(
-                #     ticker=ticker,
-                #     decision="HOLD",
-                #     reason="임시 테스트 중입니다. (실거래를 원하시면 decision 값을 BUY 또는 SELL로 변경해주세요.)",
-                #     connect_live=False,
-                # ),
+                # dto=trading_signal_dto,
+                dto=TradingSignalDto(
+                    ticker=params.ticker,
+                    decision="HOLD",
+                    reason="임시 테스트 중입니다. (실거래를 원하시면 decision 값을 BUY 또는 SELL로 변경해주세요.)",
+                    connect_live=False,
+                ),
                 buy_percent=params.buy_percent,
                 sell_percent=params.sell_percent,
             )
