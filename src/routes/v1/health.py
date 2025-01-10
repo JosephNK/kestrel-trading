@@ -25,3 +25,23 @@ async def health():
         raise HttpJsonException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
         )
+
+
+# Get Health API
+@router.get("/health", status_code=status.HTTP_200_OK, response_model=HealthResponseDto)
+async def health():
+    """
+    서버 상태 확인
+
+    Args:
+        None
+    Returns:
+        HealthResponseDto
+    """
+    try:
+        return HealthResponseDto(status="OK")
+    except Exception as e:
+        print("Exception occurred:", e)
+        raise HttpJsonException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+        )
