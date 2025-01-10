@@ -19,7 +19,7 @@ class BaseExchange(ABC):
         pass
 
     @abstractmethod
-    def get_symbols(
+    def get_tickers(
         self,
     ) -> list[dict[str, str]]:
         pass

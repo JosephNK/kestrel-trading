@@ -42,8 +42,8 @@ class UpbitExchange(BaseExchange):
     def get_provider(self) -> str:
         return ExchangeProvider.UPBIT.value
 
-    # Get Symbols
-    def get_symbols(
+    # Get Tickers
+    def get_tickers(
         self,
     ) -> list[dict[str, str]]:
         tickers = pyupbit.get_tickers(

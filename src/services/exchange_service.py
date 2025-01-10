@@ -10,7 +10,7 @@ from src.models.exception.http_json_exception import HttpJsonException
 from src.models.exchange_dto import ExchangeDto
 from src.models.params.info_params import InfoParams
 from src.models.response.base_response_dto import BaseListResponse, BaseResponse
-from src.models.symbol_dto import SymbolDto
+from src.models.ticker_dto import TickerDto
 from src.models.trading_signal_dto import TradingSignalDto
 from src.models.types.types import ExchangeProvider, StrategyType, TradingSignal
 from src.services.base.base_service import BaseService
@@ -77,18 +77,18 @@ class ExchangeService(BaseService):
             )
 
     # 거래소 Symbols 조회
-    def get_symbols(
+    def get_tickers(
         self,
-        params: InfoParams,
-    ) -> BaseListResponse[SymbolDto]:
+        exchange_provider: ExchangeProvider,
+    ) -> BaseListResponse[TickerDto]:
         try:
-            self.update_exchange()
+            self.update_exchange(exchange_provider=exchange_provider)
 
-            symbols = self.exchange.get_symbols()
+            symbols = self.exchange.get_tickers()
 
-            items = [SymbolDto(id=item["id"], name=item["name"]) for item in symbols]
+            items = [TickerDto(id=item["id"], name=item["name"]) for item in symbols]
 
-            return BaseListResponse[SymbolDto](
+            return BaseListResponse[TickerDto](
                 status_code=status.HTTP_200_OK,
                 items=items,
             )
@@ -107,13 +107,14 @@ class ExchangeService(BaseService):
     # 전략에 따른 Trading Signal 생성
     def get_trading_signal_with_strategy(
         self,
+        exchange_provider: ExchangeProvider,
         ticker: str = "KRW-BTC",
         strategy_type: StrategyType = StrategyType.RSI,
         candle_count: int = 200,
         candle_interval: str = "day",
     ) -> BaseResponse[TradingSignalDto]:
         try:
-            self.update_exchange()
+            self.update_exchange(exchange_provider=exchange_provider)
 
             self.exchange.ticker = ticker
 
@@ -162,13 +163,14 @@ class ExchangeService(BaseService):
     # AI 에이전트를 사용하여 Trading Signal 생성
     def get_trading_signal_with_agent(
         self,
+        exchange_provider: ExchangeProvider,
         ticker: str = "KRW-BTC",
         strategy_type: StrategyType = StrategyType.RSI,
         candle_count: int = 200,
         candle_interval: str = "day",
     ) -> Tuple[BaseResponse[TradingSignalDto], dict]:
         try:
-            self.update_exchange()
+            self.update_exchange(exchange_provider=exchange_provider)
 
             self.exchange.ticker = ticker
 

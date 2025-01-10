@@ -9,7 +9,7 @@ from src.models.params.trade_params import TradeParams
 from src.models.response.base_response_dto import BaseResponse
 from src.models.trading_dto import TradingDto
 from src.models.trading_signal_dto import TradingSignalDto
-from src.models.types.types import TradingSignal
+from src.models.types.types import ExchangeProvider, TradingSignal
 from src.services.base.base_service import BaseService
 from src.services.exchange_service import ExchangeService
 from src.utils.logging import Logging
@@ -26,10 +26,8 @@ class ScheduleService(BaseService):
         db: Session,
     ) -> BaseResponse[TradingDto]:
         try:
-            self.provider = params.exchange_provider
-
-            exchange_service.provider = params.exchange_provider
             trading_signal_response = exchange_service.get_trading_signal_with_strategy(
+                exchange_provider=params.exchange_provider,
                 ticker=params.ticker,
                 strategy_type=params.strategy_type,
                 candle_count=params.candle_count,
@@ -40,6 +38,7 @@ class ScheduleService(BaseService):
 
             # 매매 실행
             trading_response = self.run_trade(
+                exchange_provider=params.exchange_provider,
                 # dto=trading_signal_dto,
                 dto=TradingSignalDto(
                     ticker=params.ticker,
@@ -69,11 +68,9 @@ class ScheduleService(BaseService):
         db: Session,
     ) -> BaseResponse[TradingDto]:
         try:
-            self.provider = params.exchange_provider
-
-            exchange_service.provider = params.exchange_provider
             trading_signal_response, answer = (
                 exchange_service.get_trading_signal_with_agent(
+                    exchange_provider=params.exchange_provider,
                     ticker=params.ticker,
                     strategy_type=params.strategy_type,
                     candle_count=params.candle_count,
@@ -90,6 +87,7 @@ class ScheduleService(BaseService):
 
             # 매매 실행
             trading_response = self.run_trade(
+                exchange_provider=params.exchange_provider,
                 dto=trading_signal_dto,
                 # dto=TradingSignalDto(
                 #     ticker=ticker,
@@ -119,12 +117,13 @@ class ScheduleService(BaseService):
 
     def run_trade(
         self,
+        exchange_provider: ExchangeProvider,
         dto: TradingSignalDto,
         buy_percent: float = 30,
         sell_percent: float = 50,
     ) -> BaseResponse[TradingDto]:
         try:
-            self.update_exchange()
+            self.update_exchange(exchange_provider=exchange_provider)
 
             self.exchange.ticker = dto.ticker
 

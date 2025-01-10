@@ -19,7 +19,7 @@ class YahooFinanceExchange(BaseExchange):
     def get_provider(self) -> str:
         return ExchangeProvider.YAHOOFINANCE.value
 
-    def get_symbols(
+    def get_tickers(
         self,
     ) -> list[dict[str, str]]:
         pass

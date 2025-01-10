@@ -3,7 +3,7 @@ from pydantic.alias_generators import to_camel
 from datetime import datetime, timezone
 
 
-class SymbolDto(BaseModel):
+class TickerDto(BaseModel):
     id: str | None = None
     name: str | None = None
 

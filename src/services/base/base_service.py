@@ -5,21 +5,34 @@ from src.models.types.types import ExchangeProvider
 
 
 class BaseService:
-    exchange: BaseExchange
-    provider: ExchangeProvider
+    __provider: ExchangeProvider
+    __exchange: BaseExchange
 
     def __init__(self):
-        self.provider = ExchangeProvider.UPBIT
-        self.exchange = UpbitExchange()
+        self.__provider = ExchangeProvider.UPBIT
+        self.__exchange = UpbitExchange()
 
-    def update_exchange(self):
-        if self.provider is ExchangeProvider.UPBIT and not isinstance(
-            self.exchange, UpbitExchange
+    def update_exchange(self, exchange_provider: ExchangeProvider):
+        if exchange_provider is None:
+            raise ValueError("ExchangeProvider is a required parameter")
+
+        self.__provider = exchange_provider
+
+        if self.__provider is ExchangeProvider.UPBIT and not isinstance(
+            self.__exchange, UpbitExchange
         ):
-            self.exchange = UpbitExchange()
-        elif self.provider is ExchangeProvider.YAHOOFINANCE and not isinstance(
-            self.exchange, YahooFinanceExchange
+            self.__exchange = UpbitExchange()
+        elif self.__provider is ExchangeProvider.YAHOOFINANCE and not isinstance(
+            self.__exchange, YahooFinanceExchange
         ):
-            self.exchange = YahooFinanceExchange()
+            self.__exchange = YahooFinanceExchange()
         else:
             pass
+
+    @property
+    def provider(self) -> ExchangeProvider:
+        return self.__provider
+
+    @property
+    def exchange(self) -> BaseExchange:
+        return self.__exchange

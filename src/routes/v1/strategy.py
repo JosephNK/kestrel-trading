@@ -40,8 +40,8 @@ async def strategy(
     """
 
     try:
-        exchange_service.provider = params.exchange_provider
         return exchange_service.get_trading_signal_with_strategy(
+            exchange_provider=params.exchange_provider,
             ticker=params.ticker,
             strategy_type=params.strategy_type,
             candle_interval=params.candle_interval,
@@ -65,8 +65,8 @@ async def strategy_backtesting(
     backtesting_service: BacktestingService = Depends(get_backtesting_service),
 ):
     try:
-        backtesting_service.provider = params.exchange_provider
         return backtesting_service.run_testing(
+            exchange_provider=params.exchange_provider,
             ticker=params.ticker,
             strategy_type=params.strategy_type,
             start_date=params.start_date,

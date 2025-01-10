@@ -7,7 +7,7 @@ from fastapi import status
 from src.models.backtesting_dto import BackTestingDto
 from src.models.exception.http_json_exception import HttpJsonException
 from src.models.response.base_response_dto import BaseResponse
-from src.models.types.types import StrategyType
+from src.models.types.types import ExchangeProvider, StrategyType
 from src.services.base.base_service import BaseService
 from src.strategy.backtesting import Backtesting
 from src.utils.logging import Logging
@@ -19,6 +19,7 @@ class BacktestingService(BaseService):
 
     def run_testing(
         self,
+        exchange_provider: ExchangeProvider,
         ticker: str = "KRW-BTC",
         strategy_type: StrategyType = StrategyType.RSI,
         start_date: Optional[str] = None,
@@ -27,7 +28,7 @@ class BacktestingService(BaseService):
         candle_interval: str = "day",
     ) -> BaseResponse[BackTestingDto]:
         try:
-            self.update_exchange()
+            self.update_exchange(exchange_provider=exchange_provider)
 
             self.exchange.ticker = ticker
 

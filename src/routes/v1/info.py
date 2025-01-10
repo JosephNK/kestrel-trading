@@ -4,7 +4,7 @@ from src.models.exchange_dto import ExchangeDto
 from src.models.params.info_params import InfoParams
 from src.models.response.base_response_dto import BaseListResponse, BaseResponse
 from src.models.response.health_response_dto import HealthResponseDto
-from src.models.symbol_dto import SymbolDto
+from src.models.ticker_dto import TickerDto
 from src.routes.dependencies.services import get_exchange_service
 from src.services.exchange_service import ExchangeService
 from src.utils.logging import Logging
@@ -32,19 +32,17 @@ async def exchanges(
 
 
 @router.get(
-    "/info/symbols",
+    "/info/tickers",
     status_code=status.HTTP_200_OK,
-    response_model=BaseListResponse[SymbolDto],
+    response_model=BaseListResponse[TickerDto],
 )
-async def symbols(
+async def tickers(
     params: InfoParams = Depends(),
     exchange_service: ExchangeService = Depends(get_exchange_service),
 ):
     try:
         exchange_service.provider = params.exchange_provider
-        exchange_response = exchange_service.get_symbols(
-            params=params,
-        )
+        exchange_response = exchange_service.get_tickers()
         return exchange_response
     except Exception as e:
         print("Exception occurred:", e)
