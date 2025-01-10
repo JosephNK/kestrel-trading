@@ -41,8 +41,9 @@ async def tickers(
     exchange_service: ExchangeService = Depends(get_exchange_service),
 ):
     try:
-        exchange_service.provider = params.exchange_provider
-        exchange_response = exchange_service.get_tickers()
+        exchange_response = exchange_service.get_tickers(
+            exchange_provider=params.exchange_provider,
+        )
         return exchange_response
     except Exception as e:
         print("Exception occurred:", e)
