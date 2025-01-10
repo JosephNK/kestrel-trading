@@ -30,7 +30,7 @@ class TradeHistoryEntity(Base):
     deleted_at = Column(DateTime(timezone=True))
 
     def __repr__(self):
-        return f"<TradeHistory id={self.id}, name={self.name}, unit={self.unit}, decision={self.decision}>"
+        return f"<TradeHistory id={self.id}, job_id={self.job_id}, name={self.name}, unit={self.unit}, decision={self.decision}>"
 
 
 Base.metadata.create_all(engine)
