@@ -13,6 +13,7 @@ from src.models.exception.validate_exception_message import ValidateExceptionMes
 from src.routes.v1 import (
     auth as auth_v1,
     health as health_v1,
+    info as info_v1,
     schedule as schedule_v1,
     strategy as strategy_v1,
     trade as trade_v1,
@@ -132,6 +133,14 @@ app.include_router(
 app.include_router(
     health_v1.router,
     tags=["health_v1"],
+)
+app.include_router(
+    info_v1.router,
+    prefix="/api/v1",
+    tags=["info_v1"],
+    dependencies=[
+        Depends(get_exchange_service),
+    ],
 )
 app.include_router(
     schedule_v1.router,

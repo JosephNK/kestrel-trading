@@ -42,6 +42,17 @@ class UpbitExchange(BaseExchange):
     def get_provider(self) -> str:
         return ExchangeProvider.UPBIT.value
 
+    # Get Symbols
+    def get_symbols(
+        self,
+    ) -> list[dict[str, str]]:
+        tickers = pyupbit.get_tickers(
+            fiat="KRW",
+            verbose=False,
+            is_details=False,
+        )
+        return [{"id": ticker, "name": ticker} for ticker in tickers]
+
     # Get Current Investment Status
     def get_current_investment_status(self) -> list:
         try:
@@ -245,7 +256,7 @@ class UpbitExchange(BaseExchange):
     # Trading
     def trading(
         self,
-        answer: str,
+        answer: dict,
         buy_percent: float = 100,
         sell_percent: float = 100,
     ) -> TradingDto:

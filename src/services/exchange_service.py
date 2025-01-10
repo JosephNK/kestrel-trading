@@ -7,9 +7,12 @@ from typing import Tuple
 
 from src.agents.kestrel_agent import KestrelAiAgent
 from src.models.exception.http_json_exception import HttpJsonException
-from src.models.response.base_response_dto import BaseResponse
+from src.models.exchange_dto import ExchangeDto
+from src.models.params.info_params import InfoParams
+from src.models.response.base_response_dto import BaseListResponse, BaseResponse
+from src.models.symbol_dto import SymbolDto
 from src.models.trading_signal_dto import TradingSignalDto
-from src.models.types.types import StrategyType, TradingSignal
+from src.models.types.types import ExchangeProvider, StrategyType, TradingSignal
 from src.services.base.base_service import BaseService
 from src.strategy.strategies.base.base_strategy import BaseStrategy
 from src.strategy.strategies.profitable_strategy import (
@@ -44,6 +47,62 @@ class ExchangeService(BaseService):
             strategy = RealTimeQullaMaggieStrategy(df=df)
 
         return strategy.analyze_market()
+
+    # 거래소 리스트 조회
+    def get_exchanges(
+        self,
+    ) -> BaseListResponse[ExchangeDto]:
+        try:
+            items = [
+                ExchangeDto(
+                    id=ExchangeProvider.UPBIT.value,
+                    name=ExchangeProvider.UPBIT.value,
+                ),
+            ]
+
+            return BaseListResponse[ExchangeDto](
+                status_code=status.HTTP_200_OK,
+                items=items,
+            )
+        except HttpJsonException as e:
+            raise e
+        except Exception as e:
+            calling_function = inspect.currentframe().f_code.co_name
+            Logging.error(
+                msg=f"Exception occurred in [{calling_function}]:",
+                error=e,
+            )
+            raise HttpJsonException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+            )
+
+    # 거래소 Symbols 조회
+    def get_symbols(
+        self,
+        params: InfoParams,
+    ) -> BaseListResponse[SymbolDto]:
+        try:
+            self.update_exchange()
+
+            symbols = self.exchange.get_symbols()
+
+            items = [SymbolDto(id=item["id"], name=item["name"]) for item in symbols]
+
+            return BaseListResponse[SymbolDto](
+                status_code=status.HTTP_200_OK,
+                items=items,
+            )
+        except HttpJsonException as e:
+            raise e
+        except Exception as e:
+            calling_function = inspect.currentframe().f_code.co_name
+            Logging.error(
+                msg=f"Exception occurred in [{calling_function}]:",
+                error=e,
+            )
+            raise HttpJsonException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error_message=str(e)
+            )
 
     # 전략에 따른 Trading Signal 생성
     def get_trading_signal_with_strategy(

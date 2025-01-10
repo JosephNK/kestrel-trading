@@ -19,6 +19,11 @@ class YahooFinanceExchange(BaseExchange):
     def get_provider(self) -> str:
         return ExchangeProvider.YAHOOFINANCE.value
 
+    def get_symbols(
+        self,
+    ) -> list[dict[str, str]]:
+        pass
+
     def get_current_investment_status(self) -> list:
         pass
 
@@ -88,7 +93,7 @@ class YahooFinanceExchange(BaseExchange):
 
     def trading(
         self,
-        answer: str,
+        answer: dict,
         buy_percent: float = 100,
         sell_percent: float = 100,
     ) -> TradingDto:

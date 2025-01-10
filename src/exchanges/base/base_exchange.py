@@ -19,6 +19,12 @@ class BaseExchange(ABC):
         pass
 
     @abstractmethod
+    def get_symbols(
+        self,
+    ) -> list[dict[str, str]]:
+        pass
+
+    @abstractmethod
     def get_current_investment_status(self) -> list:
         pass
 
@@ -39,7 +45,7 @@ class BaseExchange(ABC):
     @abstractmethod
     def trading(
         self,
-        answer: str,
+        answer: dict,
         buy_percent: float = 100,
         sell_percent: float = 100,
     ) -> TradingDto:
